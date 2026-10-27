@@ -2,6 +2,8 @@
 
 Use this task after opening the repository in Android Studio or an IDE with GitHub Copilot.
 
+> The baseline described here has been implemented and verified on an emulator. Use [the next-session checklist](next-session.md) for TalkBack verification and review.
+
 ## Goal
 
 Create the smallest maintainable, buildable native Android baseline for Scholarly Feed. Do not implement RSS or AI yet.
