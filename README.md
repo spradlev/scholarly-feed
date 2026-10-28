@@ -25,6 +25,12 @@ JAVA_HOME="/opt/android-studio/jbr" ANDROID_HOME="$HOME/Android/Sdk" ./gradlew :
 
 The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
+To run the Compose UI test on a connected device or running emulator:
+
+```bash
+JAVA_HOME="/opt/android-studio/jbr" ANDROID_HOME="$HOME/Android/Sdk" ./gradlew :app:connectedDebugAndroidTest
+```
+
 To install and launch on a connected device or running emulator:
 
 ```bash
