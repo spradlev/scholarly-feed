@@ -4,7 +4,7 @@ Scholarly Feed is a distraction-free reader for scholarly and scientific article
 
 ## Project status
 
-The repository contains a minimal native Android app built with Kotlin and Jetpack Compose. Its first screen shows an empty-feed message and a working, accessible Focus Mode toggle. Feed ingestion, persistence, navigation, and AI features are not implemented yet.
+The repository contains a minimal native Android app built with Kotlin and Jetpack Compose. It has an empty-feed screen, a Focus Mode toggle, and a source-management screen for adding and removing unverified feed sources. Sources are held in memory only; the app does not fetch feeds or persist sources across restarts. AI features are not implemented.
 
 ## Build and run
 

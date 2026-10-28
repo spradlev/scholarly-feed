@@ -42,6 +42,10 @@ Accessibility is a product requirement, not a visual polish pass. Compose does n
 - [ ] AI network failures do not prevent ordinary reading.
 - [ ] Speech-unavailable and permission-denied states provide a text alternative.
 
+The Focus Mode switch exposes its label, switch role, and explicit on/off state in Compose semantics, and the UI test verifies those values. Confirm that TalkBack actually announces the state on an emulator or device before marking the checklist item complete.
+
+The source-management screen uses labeled fields and named remove actions. Sources are session-only and are not validated or fetched yet.
+
 ## Test sequence
 
 1. Run each primary flow with TalkBack enabled.
