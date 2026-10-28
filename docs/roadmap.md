@@ -5,13 +5,15 @@ Priorities are deliberately sequential. A later phase should not begin until the
 ## Phase 0 — Development environment and repository
 
 - [ ] Confirm Android Studio version and installed SDK/platform-tools.
-- [ ] Create a Kotlin + Jetpack Compose Android project.
-- [ ] Run the starter app on an emulator or physical Android device.
-- [ ] Confirm Gradle sync and build succeed.
+- [x] Create a Kotlin + Jetpack Compose Android project.
+- [x] Run the starter app on an emulator or physical Android device.
+- [x] Confirm Gradle sync and build succeed.
 - [ ] Initialize Git, add `.gitignore`, and make the first commit.
 - [ ] Push to `https://github.com/spradlev/scholarly-feed`.
 - [ ] Add these project instructions and docs.
-- [ ] Record SDK, Gradle, Kotlin, and Compose versions actually selected.
+- [x] Record SDK, Gradle, Kotlin, and Compose versions actually selected.
+
+**Current baseline:** Android SDK Platform 37, Android Gradle Plugin 9.2.0, Gradle 9.4.1, Kotlin 2.4.10, and Compose BOM 2026.09.00. The debug build, emulator launch, and Focus Mode state changes are verified; TalkBack review remains unverified.
 
 **Done when:** a clean checkout can build using documented instructions, and the starter app launches.
 
