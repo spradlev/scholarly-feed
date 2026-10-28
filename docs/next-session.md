@@ -1,27 +1,28 @@
-# Next session: run the Android baseline
+# Next session: keep building Scholarly Feed
 
 ## Current state
 
 - Repository: https://github.com/spradlev/scholarly-feed
-- The repository now contains a minimal Kotlin + Jetpack Compose Android app.
+- The repository contains a Kotlin + Jetpack Compose Android app with an empty-feed screen, Focus Mode, and source management.
 - The debug APK builds successfully with Android Gradle Plugin 9.2.0, Gradle 9.4.1, Kotlin 2.4.10, and Compose BOM 2026.09.00.
-- The app has an empty-feed message and an accessible Focus Mode toggle.
-- The app was installed and launched on the Medium Phone API 37 emulator.
-- The Focus Mode state was verified to switch on and off in the emulator's accessibility hierarchy.
-- TalkBack has not yet been tested.
+- Sources can be added with a title, HTTPS URL, and one of four levels; they can be removed while the app process remains alive.
+- Sources are not persisted, verified, or fetched.
+- The Compose UI tests cover Focus Mode state and source add/remove; Android lint passes.
+- The app has been run on the Medium Phone API 37 emulator.
+- TalkBack exposes the Focus Mode label/state on focus, but dynamic state-change announcements were not observed.
 - The user wants step-by-step guidance and to learn while building.
 
 ## Goal
 
-Verify the screen and Focus Mode toggle with TalkBack, then review and commit the baseline. Do not add RSS, Room, the proxy, or AI before the baseline works.
+Continue with a small, tested feature built on the source-management foundation. Keep verified feed ingestion, durable persistence, and AI as separate steps.
 
 ## Steps
 
 1. Open this repository root in Android Studio; do not create a nested project.
 2. Let Gradle sync finish, using Android Studio's bundled JDK if needed.
 3. If needed, start an emulator or connect a physical Android device and run the `app` configuration.
-4. Enable TalkBack and confirm the switch announces its label and state.
-5. Review the changed files and commit the baseline.
+4. Run `JAVA_HOME="/opt/android-studio/jbr" ANDROID_HOME="$HOME/Android/Sdk" ./gradlew :app:connectedDebugAndroidTest` for UI tests.
+5. Review the changed files and commit the verified work.
 
 ## Important
 

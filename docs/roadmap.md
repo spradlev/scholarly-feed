@@ -8,9 +8,9 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Create a Kotlin + Jetpack Compose Android project.
 - [x] Run the starter app on an emulator or physical Android device.
 - [x] Confirm Gradle sync and build succeed.
-- [ ] Initialize Git, add `.gitignore`, and make the first commit.
-- [ ] Push to `https://github.com/spradlev/scholarly-feed`.
-- [ ] Add these project instructions and docs.
+- [x] Initialize Git, add `.gitignore`, and make the first commit.
+- [x] Push to `https://github.com/spradlev/scholarly-feed`.
+- [x] Add these project instructions and docs.
 - [x] Record SDK, Gradle, Kotlin, and Compose versions actually selected.
 
 **Current baseline:** Android SDK Platform 37, Android Gradle Plugin 9.2.0, Gradle 9.4.1, Kotlin 2.4.10, and Compose BOM 2026.09.00. The debug build, emulator launch, and Focus Mode state changes are verified; TalkBack review remains unverified.
@@ -19,9 +19,9 @@ Priorities are deliberately sequential. A later phase should not begin until the
 
 ## Phase 1 — Accessible app shell
 
-- [ ] Feed screen with a clear empty state.
-- [ ] Source-management screen.
-- [ ] Focus Mode control and explicit state.
+- [x] Feed screen with a clear empty state.
+- [x] Source-management screen (in-memory add/remove; no feed validation or fetching yet).
+- [x] Focus Mode control and explicit state.
 - [ ] Article detail screen using plain text.
 - [ ] Native navigation and logical accessibility traversal.
 - [ ] TalkBack smoke test and keyboard/focus review where applicable.
@@ -30,9 +30,10 @@ Priorities are deliberately sequential. A later phase should not begin until the
 
 ## Phase 2 — Sources, OPML, and feed engine
 
-- [ ] Define four source levels and source data model.
+- [x] Define four source levels and an initial in-memory source model.
 - [ ] Build a starter OPML with clearly documented candidate feeds.
 - [ ] Add, remove, categorize, import, and export sources.
+  - [x] Add, remove, and assign a source level in the current session.
 - [ ] Parse RSS and Atom feeds.
 - [ ] Sort newest-first chronologically, with deterministic handling of missing dates/ties.
 - [ ] Deduplicate entries.
