@@ -1,4 +1,4 @@
-# Next session: consider OPML import and export
+# Next session: validate feed sources and deduplication
 
 ## Current state
 
@@ -13,6 +13,7 @@
 - Focus Mode filters the displayed feed to Level 1 research and scientific reporting; turning it off restores entries from all source levels without changing cached data.
 - Each source shows the timestamp of its last successful refresh. Failed refreshes leave both the saved articles and timestamp unchanged.
 - A file-backed instrumentation test reopens the Room cache and displays a cached article detail with a fetcher that fails if called, verifying feed and detail reading does not require network access.
+- The source screen imports and exports OPML. Exports preserve app source levels with the `scholarlyFeedLevel` outline attribute; imported feeds without that attribute default to Level 1, and all imported URLs are verified before being saved.
 - Direct fetches include redirect, timeout, size, content-type, and destination-address checks. The app has not yet been tested against a real publisher feed URL.
 - Instrumentation tests cover Focus Mode state, verified-source UI flow, Room source persistence, RSS/Atom parsing, and URL/address policy; Android lint passes.
 - The app has been run on the Medium Phone API 37 emulator.
@@ -21,13 +22,13 @@
 
 ## Goal
 
-Continue with a small, tested source-management slice: evaluate an OPML format for importing and exporting verified feed URLs and source levels.
+Continue with a small feed-engine slice: test and implement article deduplication across refreshes where feed entries share a stable URL or identifier.
 
 ## Steps
 
-1. Define how OPML maps to the app's source name, feed URL, and source level.
-2. Keep imported feeds subject to the same HTTPS and successful-fetch verification as manually added sources.
-3. Add focused round-trip and invalid-input coverage.
+1. Define a stable deduplication key that avoids collapsing distinct articles.
+2. Preserve feed sort order and source identity when duplicate entries are removed.
+3. Add focused tests for duplicate and near-duplicate entries.
 
 ## Important
 

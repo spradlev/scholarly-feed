@@ -9,7 +9,8 @@ This document records the intended direction and distinguishes it from the curre
 - **Feed ingestion:** OkHttp fetches user-entered HTTPS URLs with manual redirect checks, timeouts, a 2 MiB response cap, content-type checks, and public-address DNS filtering. RSS Parser handles RSS/Atom parsing and article ordering.
 - **Article content:** Only feed-provided metadata and excerpts are cached. Cached articles have a detail view; full article text extraction is not implemented.
 - **Refresh status:** Each source stores the time of its last successful fetch. Article replacement and timestamp updates commit together, so failed fetches preserve both.
-- **Not implemented:** ViewModels, OPML, article detail, deduplication, Focus Mode feed filtering, and the Librarian.
+- **OPML:** Source list interchange uses OPML 2.0; `scholarlyFeedLevel` preserves source levels, while standard OPML without it defaults to Level 1. Import must route every URL through existing feed verification before persistence.
+- **Not implemented:** ViewModels, article deduplication, and the Librarian.
 
 The Room database upgrades version 1 source-only installations to version 2 without dropping their saved sources. The network safeguards run on-device and are not a substitute for server-side egress controls if the architecture later accepts arbitrary remote URLs.
 

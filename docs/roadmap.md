@@ -36,8 +36,9 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Hand off a publisher/topic search to the device's web search app.
 - [ ] Integrate in-app web search results through a search service.
 - [ ] Build a starter OPML with clearly documented candidate feeds.
-- [ ] Add, remove, categorize, import, and export sources.
+- [x] Add, remove, categorize, import, and export sources.
   - [x] Add, remove, and assign a source level.
+  - [x] Import and export verified sources through OPML, preserving source levels.
 - [x] Verify user-entered feeds and parse RSS and Atom.
 - [x] Sort newest-first, placing undated articles last while preserving their feed order.
 - [ ] Deduplicate entries.
