@@ -25,11 +25,15 @@ class FeedSourceManagementScreenTest {
 
     private val sources = mutableStateListOf<FeedSource>()
     private var failVerification = false
+    private var failWebSearch = false
+    private var searchedQuery: String? = null
 
     @Before
     fun setUp() {
         sources.clear()
         failVerification = false
+        failWebSearch = false
+        searchedQuery = null
         composeRule.setContent {
             MaterialTheme {
                 FeedSourceManagementScreen(
@@ -53,6 +57,11 @@ class FeedSourceManagementScreenTest {
                     },
                     onRemoveSource = { source -> sources.remove(source) },
                     onBack = {},
+                    onSearchWeb = { query ->
+                        searchedQuery = createWebFeedSearchIntent(query)
+                            .getStringExtra(android.app.SearchManager.QUERY)
+                        !failWebSearch
+                    },
                 )
             }
         }
@@ -103,9 +112,11 @@ class FeedSourceManagementScreenTest {
     fun discoverySearchSelectsCandidateAndPrefillsSourceForm() {
         composeRule.onNodeWithTag("discoverSourcesButton").performClick()
         composeRule.onNodeWithText(
-            "Search this starter directory by publisher or topic. These are candidates, not verified feeds. Live web search isn't available yet.",
+            "Search this starter directory or search the web for feed links. Directory entries are candidates, not verified feeds.",
         ).assertExists()
         composeRule.onNodeWithTag("sourceDiscoverySearch").performTextInput("biology")
+        composeRule.onNodeWithTag("searchWebButton").performClick()
+        assertEquals("biology RSS feed", searchedQuery)
 
         composeRule.onNodeWithText("bioRxiv").assertExists()
         assertTrue(composeRule.onAllNodesWithText("Nature").fetchSemanticsNodes().isEmpty())
@@ -117,5 +128,17 @@ class FeedSourceManagementScreenTest {
         )
         composeRule.onNodeWithTag("sourceUrlInput").assertExists()
         composeRule.onNodeWithText("No verified sources yet.").assertExists()
+    }
+
+    @Test
+    fun showsRecoveryWhenNoWebSearchAppCanHandleRequest() {
+        failWebSearch = true
+        composeRule.onNodeWithTag("discoverSourcesButton").performClick()
+        composeRule.onNodeWithTag("sourceDiscoverySearch").performTextInput("climate research")
+        composeRule.onNodeWithTag("searchWebButton").performClick()
+
+        composeRule.onNodeWithText(
+            "No web search app is available. You can still search the built-in directory or enter a feed URL.",
+        ).assertExists()
     }
 }

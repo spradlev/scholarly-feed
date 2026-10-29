@@ -14,6 +14,7 @@ This file distinguishes user-confirmed decisions from proposals and open questio
 - **Source persistence:** Room stores verified feed-source metadata on the device.
 - **Feed fetching:** The Android app fetches user-entered HTTPS RSS/Atom URLs directly, with redirect, timeout, response-size, content-type, and destination-address checks. The user chose direct device fetching over a backend for this stage.
 - **Feed parser:** `com.prof18.rssparser:rssparser` parses RSS and Atom documents.
+- **Initial Discovery search:** Use Android's external web-search handoff rather than embedding a search provider. Results are not ingested; users manually enter and verify feed URLs.
 
 ## Recommended, not yet implemented
 

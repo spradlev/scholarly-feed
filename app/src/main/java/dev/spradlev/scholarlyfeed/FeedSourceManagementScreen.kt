@@ -80,6 +80,7 @@ internal fun FeedSourceManagementScreen(
     onVerifyAndAdd: suspend (FeedSource) -> ParsedFeed,
     onRemoveSource: (FeedSource) -> Unit,
     onBack: () -> Unit,
+    onSearchWeb: (String) -> Boolean,
 ) {
     var title by rememberSaveable { mutableStateOf("") }
     var feedUrl by rememberSaveable { mutableStateOf("") }
@@ -101,6 +102,7 @@ internal fun FeedSourceManagementScreen(
                 errorMessage = null
                 showingDiscovery = false
             },
+            onSearchWeb = onSearchWeb,
         )
         return
     }
@@ -256,8 +258,10 @@ internal fun FeedSourceManagementScreen(
 private fun SourceDiscoveryScreen(
     onBack: () -> Unit,
     onSelect: (SourceCandidate) -> Unit,
+    onSearchWeb: (String) -> Boolean,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    var searchError by rememberSaveable { mutableStateOf(false) }
     val matchingCandidates = remember(query) {
         val searchTerms = query.trim().split(Regex("\\s+")).filter(String::isNotEmpty)
         sourceCandidates.filter { candidate ->
@@ -284,7 +288,7 @@ private fun SourceDiscoveryScreen(
                 style = MaterialTheme.typography.headlineMedium,
             )
             Text(
-                text = "Search this starter directory by publisher or topic. These are candidates, not verified feeds. Live web search isn't available yet.",
+                text = "Search this starter directory or search the web for feed links. Directory entries are candidates, not verified feeds.",
                 style = MaterialTheme.typography.bodyLarge,
             )
             OutlinedTextField(
@@ -296,8 +300,23 @@ private fun SourceDiscoveryScreen(
                     .fillMaxWidth()
                     .testTag("sourceDiscoverySearch"),
             )
+            Button(
+                onClick = {
+                    searchError = !onSearchWeb(query.trim())
+                },
+                enabled = query.isNotBlank(),
+                modifier = Modifier.testTag("searchWebButton"),
+            ) {
+                Text("Search the web for RSS feeds")
+            }
+            if (searchError) {
+                Text(
+                    text = "No web search app is available. You can still search the built-in directory or enter a feed URL.",
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
             if (matchingCandidates.isEmpty()) {
-                Text("No candidates match. Try another publisher or topic.")
+                Text("No candidates match. Try another publisher or topic, or search the web.")
             } else {
                 matchingCandidates.forEach { candidate ->
                     val level = sourceLevels.first { it.number == candidate.level }

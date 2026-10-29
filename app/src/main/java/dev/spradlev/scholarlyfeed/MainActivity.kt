@@ -1,5 +1,8 @@
 package dev.spradlev.scholarlyfeed
 
+import android.app.SearchManager
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,6 +36,7 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -57,8 +61,14 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+internal fun createWebFeedSearchIntent(query: String): Intent =
+    Intent(Intent.ACTION_WEB_SEARCH).apply {
+        putExtra(SearchManager.QUERY, "$query RSS feed")
+    }
+
 @Composable
 private fun ScholarlyFeedScreen(sourceDao: FeedSourceDao) {
+    val context = LocalContext.current
     var focusModeEnabled by rememberSaveable { mutableStateOf(false) }
     var showingSources by rememberSaveable { mutableStateOf(false) }
     val repository = remember(sourceDao) { FeedRepository(sourceDao, SafeFeedFetcher()) }
@@ -92,6 +102,14 @@ private fun ScholarlyFeedScreen(sourceDao: FeedSourceDao) {
                 }
             },
             onBack = { showingSources = false },
+            onSearchWeb = { query ->
+                try {
+                    context.startActivity(createWebFeedSearchIntent(query))
+                    true
+                } catch (_: ActivityNotFoundException) {
+                    false
+                }
+            },
         )
     } else {
         Surface(modifier = Modifier.fillMaxSize()) {

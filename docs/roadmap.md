@@ -33,7 +33,8 @@ Priorities are deliberately sequential. A later phase should not begin until the
 
 - [x] Define four source levels and a source model.
 - [x] Search a built-in candidate directory by publisher name or topic; require a manually entered and verified feed URL.
-- [ ] Add live web search for source discovery.
+- [x] Hand off a publisher/topic search to the device's web search app.
+- [ ] Integrate in-app web search results through a search service.
 - [ ] Build a starter OPML with clearly documented candidate feeds.
 - [ ] Add, remove, categorize, import, and export sources.
   - [x] Add, remove, and assign a source level.

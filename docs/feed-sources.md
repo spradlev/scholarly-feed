@@ -11,7 +11,7 @@
 
 These are source candidates, not confirmed feed endpoints. Do not ship guessed URLs as verified. The current app lets a user enter an exact URL and adds it only after an HTTPS request returns a parseable RSS/Atom feed with a title. No starter candidate feed has yet been verified in this project. Some outlets primarily publish press releases or summaries; link to the underlying paper or DOI when available and make the source type clear.
 
-The app's built-in Discovery directory contains publisher names and topic keywords from this candidate list. Searching it is local-only; it does not search the web or claim that a publisher has a supported feed. Selecting a candidate fills the source name and level, after which the user must enter and verify an exact HTTPS feed URL.
+The app's built-in Discovery directory contains publisher names and topic keywords from this candidate list. Searching it is local-only; it does not claim that a publisher has a supported feed. Discovery can hand the search phrase to the device's web search app with “RSS feed” appended. Search results are not imported or trusted automatically: the user must enter and verify an exact HTTPS feed URL.
 
 ## Validation requirements
 
