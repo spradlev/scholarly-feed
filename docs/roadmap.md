@@ -22,8 +22,8 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Feed screen with a clear empty state.
 - [x] Source-management screen with verified add/remove and source levels.
 - [x] Focus Mode control and explicit state.
-- [ ] Apply Focus Mode to the feed by source level.
-- [ ] Article detail screen using plain text.
+- [x] Apply Focus Mode to show only Level 1 research and scientific reporting.
+- [x] Article detail screen using cached feed data, with excerpts distinguished from full text.
 - [ ] Native navigation and logical accessibility traversal.
 - [ ] TalkBack smoke test and keyboard/focus review where applicable.
 
@@ -56,7 +56,7 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [ ] Verify reading saved/cached items with network disabled.
 - [ ] Design optional cloud sync alongside local-only storage; evaluate Google Drive, Box, Dropbox, and OneDrive before selecting providers.
 
-**Current limitation:** feed entries and available excerpts persist; full article text and detail view are not available.
+**Current limitation:** feed entries and available excerpts persist and can be opened in a detail view; full article text is not retrieved or cached.
 
 **Done when:** app restart and offline reading preserve cached sources and articles, and failed refreshes do not erase them.
 
