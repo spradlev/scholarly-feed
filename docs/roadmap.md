@@ -20,8 +20,9 @@ Priorities are deliberately sequential. A later phase should not begin until the
 ## Phase 1 — Accessible app shell
 
 - [x] Feed screen with a clear empty state.
-- [x] Source-management screen (in-memory add/remove; no feed validation or fetching yet).
+- [x] Source-management screen with verified add/remove and source levels.
 - [x] Focus Mode control and explicit state.
+- [ ] Apply Focus Mode to the feed by source level.
 - [ ] Article detail screen using plain text.
 - [ ] Native navigation and logical accessibility traversal.
 - [ ] TalkBack smoke test and keyboard/focus review where applicable.
@@ -30,27 +31,32 @@ Priorities are deliberately sequential. A later phase should not begin until the
 
 ## Phase 2 — Sources, OPML, and feed engine
 
-- [x] Define four source levels and an initial in-memory source model.
+- [x] Define four source levels and a source model.
+- [x] Search a built-in candidate directory by publisher name or topic; require a manually entered and verified feed URL.
+- [x] Hand off a publisher/topic search to the device's web search app.
+- [ ] Integrate in-app web search results through a search service.
 - [ ] Build a starter OPML with clearly documented candidate feeds.
 - [ ] Add, remove, categorize, import, and export sources.
-  - [x] Add, remove, and assign a source level in the current session.
-- [ ] Parse RSS and Atom feeds.
-- [ ] Sort newest-first chronologically, with deterministic handling of missing dates/ties.
+  - [x] Add, remove, and assign a source level.
+- [x] Verify user-entered feeds and parse RSS and Atom.
+- [x] Sort newest-first, placing undated articles last while preserving their feed order.
 - [ ] Deduplicate entries.
-- [ ] Apply Focus Mode filtering.
+- [x] Restrict direct fetches to HTTPS and apply redirect, timeout, response-size, content-type, and address checks.
 - [ ] Validate each starter feed URL and parser behavior before release.
 
-**Done when:** tests cover sorting, missing dates, duplicates, OPML import/export, and Focus Mode; feed URLs are individually verified.
+**Done when:** tests cover sorting, missing dates, duplicates, OPML import/export, and Focus Mode; starter feed URLs are individually verified.
 
 ## Phase 3 — Offline cache
 
-- [ ] Add Room persistence.
+- [x] Add Room persistence for verified source metadata.
 - [ ] Cache source metadata and entries/articles.
 - [ ] Preserve cached content when refresh fails.
 - [ ] Show refresh state and last successful refresh.
 - [ ] Verify reading saved/cached items with network disabled.
 
-**Done when:** app restart and offline reading preserve cached sources and articles.
+**Current limitation:** source metadata persists across restarts; article results are not cached and are lost when the process ends.
+
+**Done when:** app restart and offline reading preserve cached sources and articles, and failed refreshes do not erase them.
 
 ## Phase 4 — Accessibility and speech
 

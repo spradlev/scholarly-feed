@@ -1,6 +1,16 @@
 # Proposed architecture
 
-This document describes the intended direction, not an assertion that these components already exist. Adjust it when implementation decisions are verified.
+This document records the intended direction and distinguishes it from the current implementation.
+
+## Current implementation
+
+- **UI:** Compose feed and source-management screens; source operations are invoked through a small repository.
+- **Sources:** Room stores a verified source's URL, user label, parsed feed title, level, and verification time.
+- **Feed ingestion:** OkHttp fetches user-entered HTTPS URLs with manual redirect checks, timeouts, a 2 MiB response cap, content-type checks, and public-address DNS filtering. RSS Parser handles RSS/Atom parsing and article ordering.
+- **Article results:** Available in memory after verification or refresh only. They are not persisted, so offline article reading is not available yet.
+- **Not implemented:** ViewModels, OPML, article detail, deduplication, Focus Mode feed filtering, and the Librarian.
+
+The network safeguards run on-device and are not a substitute for server-side egress controls if the architecture later accepts arbitrary remote URLs.
 
 ## Initial application
 
