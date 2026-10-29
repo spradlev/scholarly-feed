@@ -1,4 +1,4 @@
-# Next session: validate starter feed sources
+# Next session: accessibility smoke test
 
 ## Current state
 
@@ -15,7 +15,7 @@
 - Each source shows the timestamp of its last successful refresh. Failed refreshes leave both the saved articles and timestamp unchanged.
 - A file-backed instrumentation test reopens the Room cache and displays a cached article detail with a fetcher that fails if called, verifying feed and detail reading does not require network access.
 - The source screen imports and exports OPML. Exports preserve app source levels with the `scholarlyFeedLevel` outline attribute; imported feeds without that attribute default to Level 1, and all imported URLs are verified before being saved.
-- Direct fetches include redirect, timeout, size, content-type, and destination-address checks. The app has not yet been tested against a real publisher feed URL.
+- Direct fetches include redirect, timeout, size, content-type, and destination-address checks. Four starter feeds were verified through the Android production fetcher on 2026-10-28; the URL-only OPML and per-feed ledger are in `docs/starter-sources.opml` and `docs/feed-sources.md`.
 - Instrumentation tests cover Focus Mode state, verified-source UI flow, Room source persistence, RSS/Atom parsing and deduplication, and URL/address policy; Android lint passes.
 - The app has been run on the Medium Phone API 37 emulator.
 - TalkBack exposes the Focus Mode label/state on focus, but dynamic state-change announcements were not observed.
@@ -23,19 +23,19 @@
 
 ## Goal
 
-Create a small starter OPML set from candidate publishers and validate that each selected HTTPS feed endpoint still parses correctly.
+Perform the remaining manual accessibility pass with TalkBack and keyboard/focus navigation on the source-management and article-reading flows.
 
 ## Steps
 
-1. Select a small, clearly documented set of publishers and their feed endpoints.
-2. Verify each endpoint against the app's HTTPS, redirect, size, content-type, and address policies.
-3. Add only feeds that parse reliably to the starter OPML and document unverified candidates separately.
+1. Verify screen-reader labels, traversal, status announcements, and back navigation for the implemented screens.
+2. Check keyboard navigation/focus behavior where an external keyboard is available.
+3. Record only actionable accessibility gaps and fix a small, testable issue if one is found.
 
 ## Important
 
 - Do not say the build works until it has been run successfully.
 - Never commit API keys, signing credentials, local machine secrets, or personal data.
-- Starter source names are candidates only; no feed endpoint has yet been verified against a live publisher.
+- The starter OPML is a URL list, not a feed-content bundle; source verification still runs when imported.
 - Article deduplication is scoped to one feed response; do not combine articles across publishers because source identity and Focus Mode attribution must remain intact.
 - In-app web search is not implemented; external search results require manual feed URL entry and verification.
 - The documented minimum SDK is API 26; revisit it before release.

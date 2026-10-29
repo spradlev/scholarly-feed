@@ -9,7 +9,7 @@
 | 3 | National/global civic affairs | NPR |
 | 4 | Local/regional civic affairs | South Seattle Emerald, KUOW, Washington State Standard |
 
-These are source candidates, not confirmed feed endpoints. Do not ship guessed URLs as verified. The current app lets a user enter an exact URL and adds it only after an HTTPS request returns a parseable RSS/Atom feed with a title. No starter candidate feed has yet been verified in this project. Some outlets primarily publish press releases or summaries; link to the underlying paper or DOI when available and make the source type clear.
+These are source candidates, not confirmed feed endpoints unless listed in the validation ledger below. The app lets a user enter an exact URL and adds it only after an HTTPS request returns a parseable RSS/Atom feed with a title. Some outlets primarily publish press releases or summaries; link to the underlying paper or DOI when available and make the source type clear.
 
 The app's built-in Discovery directory contains publisher names and topic keywords from this candidate list. Searching it is local-only; it does not claim that a publisher has a supported feed. Discovery can hand the search phrase to the device's web search app with “RSS feed” appended. Search results are not imported or trusted automatically: the user must enter and verify an exact HTTPS feed URL.
 
@@ -48,6 +48,15 @@ The current checks run on-device and are defense-in-depth for user-entered URLs,
 - The Librarian should state whether it has an abstract/excerpt or full text and must not invent details absent from that text.
 - Reuters is currently excluded based on the project's prior notes that it has no public RSS feed. This is a project assumption to revisit only if necessary; do not invent a feed URL.
 
-## Starter ledger
+## Starter set and validation ledger
 
-Use a separate issue or table to record per-feed verification before release. Until tested, label all candidate URLs “unverified.”
+The starter OPML file is [`starter-sources.opml`](starter-sources.opml). Its four URL-only entries cover one source at each level. The feed endpoints were fetched on 2026-10-28 and then passed through the Android app's `SafeFeedFetcher` on the API 37 emulator. That runtime check applies the app's HTTPS, redirect, public-address, timeout, response-size, content-type, and RSS/Atom parser rules. Every feed produced a non-empty title and entries with links and parsed publication timestamps.
+
+| Publisher | Level | Feed title | Exact URL | HTTP / type | Entry data and caveats |
+|---|---:|---|---|---|---|
+| ScienceDaily | 1 | Latest Science News -- ScienceDaily | `https://www.sciencedaily.com/rss/all.xml` | 200, `application/xml`; RSS | Linked entries and publication dates parsed. Feed descriptions are summaries; full article pages are not fetched. |
+| The Conversation (US) | 2 | The Conversation -- Articles (US) | `https://theconversation.com/us/articles.atom` | 200, `application/atom+xml`; Atom | Stable Atom entry IDs, alternate links, and published timestamps parsed. Entries provide HTML content; treat it as feed-provided content, not a guarantee of full article text. |
+| NPR News | 3 | NPR Topics: News | `https://feeds.npr.org/1001/rss.xml` | 200, `text/xml`; RSS | Linked entries and publication dates parsed. Descriptions provide feed summaries; NPR marks its feed for personal use. |
+| Washington State Standard | 4 | Washington State Standard | `https://washingtonstatestandard.com/feed/` | 200, `application/rss+xml`; RSS | Linked entries and publication dates parsed. Feed descriptions/content are publisher-provided; the app does not fetch article pages. |
+
+These are a tested snapshot, not a guarantee of future uptime or publisher policy. Import still re-verifies every URL before saving it. The other candidate endpoints remain unverified and are intentionally absent from the starter OPML.

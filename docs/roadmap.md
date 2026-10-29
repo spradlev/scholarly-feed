@@ -35,7 +35,7 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Search a built-in candidate directory by publisher name or topic; require a manually entered and verified feed URL.
 - [x] Hand off a publisher/topic search to the device's web search app.
 - [ ] Integrate in-app web search results through a search service.
-- [ ] Build a starter OPML with clearly documented candidate feeds.
+- [x] Build a starter OPML with clearly documented candidate feeds.
 - [x] Add, remove, categorize, import, and export sources.
   - [x] Add, remove, and assign a source level.
   - [x] Import and export verified sources through OPML, preserving source levels.
@@ -43,7 +43,7 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Sort newest-first, placing undated articles last while preserving their feed order.
 - [x] Deduplicate entries within a feed by GUID or normalized URL without merging distinct articles or source identities.
 - [x] Restrict direct fetches to HTTPS and apply redirect, timeout, response-size, content-type, and address checks.
-- [ ] Validate each starter feed URL and parser behavior before release.
+- [x] Validate each starter feed URL and parser behavior before release.
 
 **Done when:** tests cover sorting, missing dates, duplicates, OPML import/export, and Focus Mode; starter feed URLs are individually verified.
 
