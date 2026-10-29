@@ -4,7 +4,7 @@ Scholarly Feed is a distraction-free reader for scholarly and scientific article
 
 ## Project status
 
-The repository contains a native Android app built with Kotlin and Jetpack Compose. Users can search a built-in directory of publisher candidates by name or topic, hand off a query to the device's web search app, enter a feed URL, verify and save RSS/Atom sources, assign one of four levels, and fetch articles on demand. Catalog entries are candidates, not verified feeds; web results are not imported into the app. Source metadata persists locally in Room. Article results remain in memory and are lost when the app process ends, so offline article reading is not available yet. OPML, article detail, and AI features are not implemented. TalkBack behavior still needs a manual review.
+The repository contains a native Android app built with Kotlin and Jetpack Compose. Users can search a built-in directory of publisher candidates by name or topic, hand off a query to the device's web search app, enter a feed URL, verify and save RSS/Atom sources, assign one of four levels, and fetch articles on demand. Catalog entries are candidates, not verified feeds; web results are not imported into the app. Verified source metadata and fetched article entries (including feed-provided excerpts) persist locally in Room, and a failed refresh preserves the last successful entries. Local-only storage is available now; optional cloud sync with providers such as Google Drive, Box, Dropbox, or OneDrive is a future consideration, not implemented. Full article text is not downloaded, and article detail is not implemented. TalkBack behavior still needs a manual review.
 
 ## Build and run
 

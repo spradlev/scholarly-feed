@@ -49,12 +49,14 @@ Priorities are deliberately sequential. A later phase should not begin until the
 ## Phase 3 — Offline cache
 
 - [x] Add Room persistence for verified source metadata.
-- [ ] Cache source metadata and entries/articles.
-- [ ] Preserve cached content when refresh fails.
-- [ ] Show refresh state and last successful refresh.
+- [x] Cache fetched feed entries and excerpts.
+- [x] Preserve cached entries when a source refresh fails; replace that source's cache only after a successful fetch.
+- [x] Show refresh progress and per-source errors.
+- [ ] Record and show last successful refresh time.
 - [ ] Verify reading saved/cached items with network disabled.
+- [ ] Design optional cloud sync alongside local-only storage; evaluate Google Drive, Box, Dropbox, and OneDrive before selecting providers.
 
-**Current limitation:** source metadata persists across restarts; article results are not cached and are lost when the process ends.
+**Current limitation:** feed entries and available excerpts persist; full article text and detail view are not available.
 
 **Done when:** app restart and offline reading preserve cached sources and articles, and failed refreshes do not erase them.
 

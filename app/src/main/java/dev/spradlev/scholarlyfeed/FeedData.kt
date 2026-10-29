@@ -17,10 +17,7 @@ internal data class ParsedFeed(
     val articles: List<FeedArticle>,
 )
 
-internal data class FeedRefreshResult(
-    val articles: List<FeedArticle>,
-    val errors: List<String>,
-)
+internal data class FeedRefreshResult(val errors: List<String>)
 
 internal class FeedFetchException(message: String, cause: Throwable? = null) : Exception(message, cause)
 

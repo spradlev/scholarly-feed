@@ -1,22 +1,36 @@
 package dev.spradlev.scholarlyfeed
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import androidx.room.withTransaction
 
 internal class FeedRepository(
-    private val sourceDao: FeedSourceDao,
+    private val database: FeedDatabase,
     private val fetcher: FeedFetcher,
     private val nowMillis: () -> Long = System::currentTimeMillis,
 ) {
+    private val sourceDao = database.feedSourceDao()
+    private val articleDao = database.feedArticleDao()
+
     fun observeSources(): Flow<List<FeedSource>> = sourceDao.observeSources()
+
+    fun observeArticles(): Flow<List<FeedArticle>> =
+        articleDao.observeArticles().map { articles -> articles.map(CachedFeedArticle::toFeedArticle) }
 
     suspend fun verifyAndAdd(source: FeedSource): ParsedFeed {
         val parsedFeed = fetcher.fetch(source.feedUrl)
-        sourceDao.insert(
-            source.copy(
-                feedTitle = parsedFeed.title,
-                verifiedAtMillis = nowMillis(),
-            ),
+        val savedSource = source.copy(
+            feedTitle = parsedFeed.title,
+            verifiedAtMillis = nowMillis(),
         )
+        val articles = parsedFeed.articles
+            .map { it.copy(sourceUrl = source.feedUrl, sourceTitle = source.title) }
+            .mapIndexed { index, article -> CachedFeedArticle.from(article, index) }
+
+        database.withTransaction {
+            sourceDao.insert(savedSource)
+            articleDao.replaceForSource(source.feedUrl, articles)
+        }
         return parsedFeed
     }
 
@@ -25,26 +39,26 @@ internal class FeedRepository(
     }
 
     suspend fun refreshSources(sources: List<FeedSource>): FeedRefreshResult {
-        val articles = mutableListOf<FeedArticle>()
         val errors = mutableListOf<String>()
 
         sources.forEach { source ->
             try {
-                articles += fetcher.fetch(source.feedUrl).articles
+                val fetchedArticles = fetcher.fetch(source.feedUrl).articles
                     .map { article ->
                         article.copy(
                             sourceUrl = source.feedUrl,
                             sourceTitle = source.title,
                         )
                     }
+                    .mapIndexed { index, article -> CachedFeedArticle.from(article, index) }
+                database.withTransaction {
+                    articleDao.replaceForSource(source.feedUrl, fetchedArticles)
+                }
             } catch (exception: FeedFetchException) {
                 errors += "${source.title}: ${exception.message ?: "Could not load this feed."}"
             }
         }
 
-        return FeedRefreshResult(
-            articles = sortArticlesNewestFirst(articles),
-            errors = errors,
-        )
+        return FeedRefreshResult(errors = errors)
     }
 }

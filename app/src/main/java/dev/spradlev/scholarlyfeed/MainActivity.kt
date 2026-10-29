@@ -48,14 +48,16 @@ import androidx.compose.ui.unit.dp
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val sourceDao = Room.databaseBuilder(
+        val database = Room.databaseBuilder(
             applicationContext,
             FeedDatabase::class.java,
             "scholarly-feed.db",
-        ).build().feedSourceDao()
+        )
+            .addMigrations(FeedDatabase.MIGRATION_1_2)
+            .build()
         setContent {
             MaterialTheme {
-                ScholarlyFeedScreen(sourceDao)
+                ScholarlyFeedScreen(database)
             }
         }
     }
@@ -67,14 +69,14 @@ internal fun createWebFeedSearchIntent(query: String): Intent =
     }
 
 @Composable
-private fun ScholarlyFeedScreen(sourceDao: FeedSourceDao) {
+private fun ScholarlyFeedScreen(database: FeedDatabase) {
     val context = LocalContext.current
     var focusModeEnabled by rememberSaveable { mutableStateOf(false) }
     var showingSources by rememberSaveable { mutableStateOf(false) }
-    val repository = remember(sourceDao) { FeedRepository(sourceDao, SafeFeedFetcher()) }
+    val repository = remember(database) { FeedRepository(database, SafeFeedFetcher()) }
     val sources by repository.observeSources().collectAsState(initial = emptyList())
+    val articles by repository.observeArticles().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
-    var articles by remember { mutableStateOf(emptyList<FeedArticle>()) }
     var isRefreshing by remember { mutableStateOf(false) }
     var refreshMessage by remember { mutableStateOf<String?>(null) }
 
@@ -86,20 +88,10 @@ private fun ScholarlyFeedScreen(sourceDao: FeedSourceDao) {
         FeedSourceManagementScreen(
             sources = sources,
             onVerifyAndAdd = { source ->
-                val parsedFeed = repository.verifyAndAdd(source)
-                articles = parsedFeed.articles.map { article ->
-                    article.copy(
-                        sourceUrl = source.feedUrl,
-                        sourceTitle = source.title,
-                    )
-                }
-                parsedFeed
+                repository.verifyAndAdd(source)
             },
             onRemoveSource = { source ->
-                scope.launch {
-                    repository.removeSource(source)
-                    articles = articles.filterNot { it.sourceUrl == source.feedUrl }
-                }
+                scope.launch { repository.removeSource(source) }
             },
             onBack = { showingSources = false },
             onSearchWeb = { query ->
@@ -150,7 +142,7 @@ private fun ScholarlyFeedScreen(sourceDao: FeedSourceDao) {
                     Text("Latest articles", style = MaterialTheme.typography.titleLarge)
                 }
                 Text(
-                    text = "Articles load when you verify or refresh a feed. Offline article storage isn't available yet.",
+                    text = "Fetched feed entries and available excerpts are saved on this device.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Row(
@@ -183,7 +175,6 @@ private fun ScholarlyFeedScreen(sourceDao: FeedSourceDao) {
                                 refreshMessage = null
                                 try {
                                     val result = repository.refreshSources(sources)
-                                    articles = result.articles
                                     refreshMessage = result.errors
                                         .takeIf(List<String>::isNotEmpty)
                                         ?.joinToString("\n")
