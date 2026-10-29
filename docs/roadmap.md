@@ -53,7 +53,7 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Preserve cached entries when a source refresh fails; replace that source's cache only after a successful fetch.
 - [x] Show refresh progress and per-source errors.
 - [x] Record and show last successful refresh time per source.
-- [ ] Verify reading saved/cached items with network disabled.
+- [x] Verify reading saved/cached items from a reopened Room database without network access.
 - [ ] Design optional cloud sync alongside local-only storage; evaluate Google Drive, Box, Dropbox, and OneDrive before selecting providers.
 
 **Current limitation:** feed entries and available excerpts persist and can be opened in a detail view; full article text is not retrieved or cached.
