@@ -20,6 +20,11 @@ internal interface FeedSourceDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(source: FeedSource)
 
+    @Query(
+        "UPDATE feed_sources SET lastSuccessfulRefreshAtMillis = :refreshedAtMillis WHERE feedUrl = :feedUrl",
+    )
+    suspend fun updateLastSuccessfulRefresh(feedUrl: String, refreshedAtMillis: Long)
+
     @Query("DELETE FROM feed_sources WHERE feedUrl = :feedUrl")
     suspend fun remove(feedUrl: String)
 }
@@ -107,7 +112,7 @@ internal interface FeedArticleDao {
 
 @Database(
     entities = [FeedSource::class, CachedFeedArticle::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 internal abstract class FeedDatabase : RoomDatabase() {
@@ -138,6 +143,14 @@ internal abstract class FeedDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_feed_articles_sourceUrl` ON `feed_articles` (`sourceUrl`)")
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_feed_articles_publishedAtMillis` ON `feed_articles` (`publishedAtMillis`)",
+                )
+            }
+        }
+
+        val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `feed_sources` ADD COLUMN `lastSuccessfulRefreshAtMillis` INTEGER",
                 )
             }
         }

@@ -1,4 +1,4 @@
-# Next session: cache fetched articles
+# Next session: verify offline reading
 
 ## Current state
 
@@ -9,6 +9,9 @@
 - The source-management screen includes a local searchable directory of publisher candidates. Selecting a candidate fills its name and source level; the user still supplies and verifies the feed URL. The directory is not live web search, and its entries are not verified feed endpoints.
 - Discovery can hand a query to the device's web search app with “RSS feed” appended. Search results are not imported into Scholarly Feed; users must manually enter and verify the exact feed URL.
 - Refresh fetches article metadata, sorts dated articles newest-first, and keeps undated items at the end. Sources and fetched entries/excerpts persist in Room. Successful refreshes replace only that source's entries; failures keep the existing cache.
+- Tapping a cached feed entry opens a detail view with its source, publication date, feed excerpt, and a link to the original web article when available. Full article text is not cached.
+- Focus Mode filters the displayed feed to Level 1 research and scientific reporting; turning it off restores entries from all source levels without changing cached data.
+- Each source shows the timestamp of its last successful refresh. Failed refreshes leave both the saved articles and timestamp unchanged.
 - Direct fetches include redirect, timeout, size, content-type, and destination-address checks. The app has not yet been tested against a real publisher feed URL.
 - Instrumentation tests cover Focus Mode state, verified-source UI flow, Room source persistence, RSS/Atom parsing, and URL/address policy; Android lint passes.
 - The app has been run on the Medium Phone API 37 emulator.
@@ -17,14 +20,12 @@
 
 ## Goal
 
-Continue with a small, tested feature: add an article detail view for cached feed entries, clearly distinguishing feed excerpts from full article text.
+Continue with a small verification slice: confirm cached entries and their detail views remain readable with network access unavailable.
 
 ## Steps
 
-1. Make a cached entry open a readable detail view.
-2. Display the source, link, publication date, and any supplied excerpt.
-3. Keep unavailable full text clearly labeled; do not imply an excerpt is the full article.
-4. Add UI coverage and verify the detail view from cached data without a network request.
+1. Verify the app can start and display cached feed entries and details without network access.
+2. Record any gaps between current behavior and offline-reading expectations.
 
 ## Important
 

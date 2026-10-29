@@ -51,6 +51,7 @@ class FeedSourceManagementScreenTest {
                             source.copy(
                                 feedTitle = parsedFeed.title,
                                 verifiedAtMillis = 1L,
+                                lastSuccessfulRefreshAtMillis = 1L,
                             ),
                         )
                         parsedFeed
@@ -78,6 +79,7 @@ class FeedSourceManagementScreenTest {
         composeRule.onNodeWithText("Verified Research Feed and added it.").assertExists()
         composeRule.onNodeWithText("Feed: Research Feed").assertExists()
         composeRule.onNodeWithText("Level 2: Academic commentary and analysis").assertExists()
+        composeRule.onNodeWithText("Last refreshed", substring = true).assertExists()
         assertEquals(1, sources.size)
 
         composeRule.onNodeWithContentDescription("Remove Research Digest").performClick()

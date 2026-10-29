@@ -22,7 +22,7 @@ class FeedPersistenceTest {
            val source = sampleSource()
            val article = sampleArticle(source)
            val firstDatabase = Room.databaseBuilder(context, FeedDatabase::class.java, databaseName)
-               .addMigrations(FeedDatabase.MIGRATION_1_2)
+               .addMigrations(FeedDatabase.MIGRATION_1_2, FeedDatabase.MIGRATION_2_3)
                .build()
            try {
                FeedRepository(
@@ -35,13 +35,19 @@ class FeedPersistenceTest {
            }
 
            val reopenedDatabase = Room.databaseBuilder(context, FeedDatabase::class.java, databaseName)
-               .addMigrations(FeedDatabase.MIGRATION_1_2)
+               .addMigrations(FeedDatabase.MIGRATION_1_2, FeedDatabase.MIGRATION_2_3)
                .build()
            try {
                val dao = reopenedDatabase.feedSourceDao()
                val articleDao = reopenedDatabase.feedArticleDao()
                assertEquals(
-                   listOf(source.copy(feedTitle = "Research Feed", verifiedAtMillis = 1234L)),
+                   listOf(
+                       source.copy(
+                           feedTitle = "Research Feed",
+                           verifiedAtMillis = 1234L,
+                           lastSuccessfulRefreshAtMillis = 1234L,
+                       ),
+                   ),
                    dao.observeSources().first(),
                )
                assertEquals(listOf(article), articleDao.observeArticles().first().map(CachedFeedArticle::toFeedArticle))
@@ -92,13 +98,17 @@ class FeedPersistenceTest {
        }
 
        val migratedDatabase = Room.databaseBuilder(context, FeedDatabase::class.java, databaseName)
-           .addMigrations(FeedDatabase.MIGRATION_1_2)
+           .addMigrations(FeedDatabase.MIGRATION_1_2, FeedDatabase.MIGRATION_2_3)
            .build()
        runBlocking {
            try {
                assertEquals(
                    "Research Digest",
                    migratedDatabase.feedSourceDao().observeSources().first().single().title,
+               )
+               assertEquals(
+                   null,
+                   migratedDatabase.feedSourceDao().observeSources().first().single().lastSuccessfulRefreshAtMillis,
                )
                assertTrue(migratedDatabase.feedArticleDao().observeArticles().first().isEmpty())
            } finally {
@@ -116,21 +126,36 @@ class FeedPersistenceTest {
            val source = sampleSource()
            val oldArticle = sampleArticle(source)
            val fetcher = SingleFeedFetcher(ParsedFeed("Research Feed", source.feedUrl, listOf(oldArticle)))
+           var currentTimeMillis = 1000L
            try {
-               val repository = FeedRepository(database, fetcher)
+               val repository = FeedRepository(database, fetcher) { currentTimeMillis }
                repository.verifyAndAdd(source)
+               assertEquals(
+                   1000L,
+                   database.feedSourceDao().observeSources().first().single().lastSuccessfulRefreshAtMillis,
+               )
 
+               currentTimeMillis = 2000L
                fetcher.failure = true
                val failedRefresh = repository.refreshSources(listOf(source))
                assertEquals(1, failedRefresh.errors.size)
                assertEquals(listOf(oldArticle), repository.observeArticles().first())
+               assertEquals(
+                   1000L,
+                   database.feedSourceDao().observeSources().first().single().lastSuccessfulRefreshAtMillis,
+               )
 
                val newArticle = oldArticle.copy(id = "new", title = "New finding")
+               currentTimeMillis = 3000L
                fetcher.failure = false
                fetcher.feed = ParsedFeed("Research Feed", source.feedUrl, listOf(newArticle))
                val successfulRefresh = repository.refreshSources(listOf(source))
                assertTrue(successfulRefresh.errors.isEmpty())
                assertEquals(listOf(newArticle), repository.observeArticles().first())
+               assertEquals(
+                   3000L,
+                   database.feedSourceDao().observeSources().first().single().lastSuccessfulRefreshAtMillis,
+               )
            } finally {
                database.close()
            }
