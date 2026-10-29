@@ -28,6 +28,7 @@ class FeedSourceManagementScreenTest {
     private var failVerification = false
     private var failWebSearch = false
     private var searchedQuery: String? = null
+    private var importedOpmlSources: List<OpmlSource> = emptyList()
 
     @Before
     fun setUp() {
@@ -35,6 +36,7 @@ class FeedSourceManagementScreenTest {
         failVerification = false
         failWebSearch = false
         searchedQuery = null
+        importedOpmlSources = emptyList()
         composeRule.setContent {
             MaterialTheme {
                 FeedSourceManagementScreen(
@@ -65,6 +67,7 @@ class FeedSourceManagementScreenTest {
                         !failWebSearch
                     },
                     onImportOpml = { importedSources ->
+                        importedOpmlSources = importedSources
                         OpmlImportResult(importedSources.size, emptyList())
                     },
                 )
@@ -155,7 +158,31 @@ class FeedSourceManagementScreenTest {
         composeRule.onNodeWithText("Import OPML").assertExists()
         composeRule.onNodeWithText("Export OPML").assertExists()
         composeRule.onNodeWithText(
-            "Import feeds from an OPML file or export your verified sources. Imported feeds are verified before they are saved.",
+            "Add the starter feeds or import an OPML file. Every feed is verified before it is saved. You can also export your verified sources.",
         ).assertExists()
+    }
+
+    @Test
+    fun addsBundledStarterSourcesThroughExistingImportFlow() {
+        composeRule.onNodeWithTag("addStarterSourcesButton").performScrollTo().performClick()
+
+        composeRule.onNodeWithText("Imported 4 sources.").assertExists()
+        assertEquals(
+            listOf(
+                OpmlSource("ScienceDaily", "https://www.sciencedaily.com/rss/all.xml", 1),
+                OpmlSource(
+                    "The Conversation (US)",
+                    "https://theconversation.com/us/articles.atom",
+                    2,
+                ),
+                OpmlSource("NPR News", "https://feeds.npr.org/1001/rss.xml", 3),
+                OpmlSource(
+                    "Washington State Standard",
+                    "https://washingtonstatestandard.com/feed/",
+                    4,
+                ),
+            ),
+            importedOpmlSources,
+        )
     }
 }

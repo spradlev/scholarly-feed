@@ -97,9 +97,26 @@ internal fun FeedSourceManagementScreen(
     var opmlMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var opmlMessageIsError by rememberSaveable { mutableStateOf(false) }
     var isImportingOpml by remember { mutableStateOf(false) }
+    var isAddingStarterSources by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val selectedSourceLevel = sourceLevels.first { it.number == selectedLevel }
+
+    suspend fun importOpmlSources(opmlSources: List<OpmlSource>) {
+        val result = onImportOpml(opmlSources)
+        opmlMessage = buildString {
+            append("Imported ${result.importedCount} source")
+            if (result.importedCount != 1) append("s")
+            append(".")
+            if (result.errors.isNotEmpty()) {
+                append(" ")
+                append(result.errors.take(3).joinToString(" "))
+                if (result.errors.size > 3) append(" And ${result.errors.size - 3} more.")
+            }
+        }
+        opmlMessageIsError = result.importedCount == 0 || result.errors.isNotEmpty()
+    }
+
     val importOpmlLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
@@ -108,19 +125,7 @@ internal fun FeedSourceManagementScreen(
                 isImportingOpml = true
                 opmlMessage = null
                 try {
-                    val opmlSources = readOpmlDocument(context, uri)
-                    val result = onImportOpml(opmlSources)
-                    opmlMessage = buildString {
-                        append("Imported ${result.importedCount} source")
-                        if (result.importedCount != 1) append("s")
-                        append(".")
-                        if (result.errors.isNotEmpty()) {
-                            append(" ")
-                            append(result.errors.take(3).joinToString(" "))
-                            if (result.errors.size > 3) append(" And ${result.errors.size - 3} more.")
-                        }
-                    }
-                    opmlMessageIsError = result.importedCount == 0 || result.errors.isNotEmpty()
+                    importOpmlSources(readOpmlDocument(context, uri))
                 } catch (exception: IOException) {
                     opmlMessage = exception.message ?: "Could not read the selected OPML file."
                     opmlMessageIsError = true
@@ -199,16 +204,43 @@ internal fun FeedSourceManagementScreen(
             }
             Text("OPML source lists", style = MaterialTheme.typography.titleMedium)
             Text(
-                "Import feeds from an OPML file or export your verified sources. Imported feeds are verified before they are saved.",
+                "Add the starter feeds or import an OPML file. Every feed is verified before it is saved. You can also export your verified sources.",
                 style = MaterialTheme.typography.bodyMedium,
             )
+            Button(
+                onClick = {
+                    scope.launch {
+                        isImportingOpml = true
+                        isAddingStarterSources = true
+                        opmlMessage = null
+                        try {
+                            importOpmlSources(readStarterOpml(context))
+                        } catch (exception: IOException) {
+                            opmlMessage = exception.message ?: "Could not read the starter source list."
+                            opmlMessageIsError = true
+                        } catch (exception: OpmlFormatException) {
+                            opmlMessage = exception.message ?: "The starter source list is invalid."
+                            opmlMessageIsError = true
+                        } finally {
+                            isAddingStarterSources = false
+                            isImportingOpml = false
+                        }
+                    }
+                },
+                enabled = !isImportingOpml,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("addStarterSourcesButton"),
+            ) {
+                Text(if (isAddingStarterSources) "Adding…" else "Add starter sources")
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(
                     onClick = { importOpmlLauncher.launch(arrayOf("*/*")) },
                     enabled = !isImportingOpml,
                     modifier = Modifier.testTag("importOpmlButton"),
                 ) {
-                    Text(if (isImportingOpml) "Importing…" else "Import OPML")
+                    Text(if (isImportingOpml && !isAddingStarterSources) "Importing…" else "Import OPML")
                 }
                 TextButton(
                     onClick = { exportOpmlLauncher.launch("scholarly-feed-sources.opml") },

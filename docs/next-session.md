@@ -1,4 +1,4 @@
-# Next session: accessibility smoke test
+# Next session: optional sync design
 
 ## Current state
 
@@ -19,17 +19,18 @@
 - Instrumentation tests cover Focus Mode state, verified-source UI flow, Room source persistence, RSS/Atom parsing and deduplication, and URL/address policy; Android lint passes.
 - The app has been run on the Medium Phone API 37 emulator.
 - TalkBack exposes the Focus Mode label/state on focus, but dynamic state-change announcements were not observed.
+- Source management can add the bundled four-feed starter OPML directly; imports use the same per-feed verification and duplicate handling as document imports.
 - The user wants step-by-step guidance and to learn while building.
 
 ## Goal
 
-Perform the remaining manual accessibility pass with TalkBack and keyboard/focus navigation on the source-management and article-reading flows.
+Define a small, local-first design for optional feed synchronization, then compare Google Drive, Box, Dropbox, and OneDrive before selecting a provider.
 
 ## Steps
 
-1. Verify screen-reader labels, traversal, status announcements, and back navigation for the implemented screens.
-2. Check keyboard navigation/focus behavior where an external keyboard is available.
-3. Record only actionable accessibility gaps and fix a small, testable issue if one is found.
+1. Define what data syncs and how local-only users remain unaffected.
+2. Compare provider APIs, account linking, privacy, conflict handling, and offline behavior.
+3. Keep provider selection and implementation out of scope until the trade-offs are clear.
 
 ## Important
 

@@ -39,6 +39,7 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Add, remove, categorize, import, and export sources.
   - [x] Add, remove, and assign a source level.
   - [x] Import and export verified sources through OPML, preserving source levels.
+  - [x] Offer the verified starter OPML directly from source management.
 - [x] Verify user-entered feeds and parse RSS and Atom.
 - [x] Sort newest-first, placing undated articles last while preserving their feed order.
 - [x] Deduplicate entries within a feed by GUID or normalized URL without merging distinct articles or source identities.
