@@ -1,6 +1,8 @@
 package dev.spradlev.scholarlyfeed
 
+import android.database.sqlite.SQLiteConstraintException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import androidx.room.withTransaction
 
@@ -40,6 +42,41 @@ internal class FeedRepository(
         sourceDao.remove(source.feedUrl)
     }
 
+    suspend fun importOpml(sources: List<OpmlSource>): OpmlImportResult {
+        val existingUrls = sourceDao.observeSources().first()
+            .map(FeedSource::feedUrl)
+            .toMutableSet()
+        val errors = mutableListOf<String>()
+        var importedCount = 0
+
+        sources.forEach { opmlSource ->
+            if (!existingUrls.add(opmlSource.feedUrl)) {
+                errors += "${opmlSource.title}: this feed URL is already in your list."
+                return@forEach
+            }
+
+            try {
+                verifyAndAdd(
+                    FeedSource(
+                        feedUrl = opmlSource.feedUrl,
+                        title = opmlSource.title,
+                        feedTitle = "",
+                        level = opmlSource.level,
+                        verifiedAtMillis = 0L,
+                    ),
+                )
+                importedCount++
+            } catch (exception: FeedFetchException) {
+                existingUrls.remove(opmlSource.feedUrl)
+                errors += "${opmlSource.title}: ${exception.message ?: "Could not verify this feed."}"
+            } catch (exception: SQLiteConstraintException) {
+                errors += "${opmlSource.title}: this feed URL is already in your list."
+            }
+        }
+
+        return OpmlImportResult(importedCount, errors)
+    }
+
     suspend fun refreshSources(sources: List<FeedSource>): FeedRefreshResult {
         val errors = mutableListOf<String>()
 
@@ -65,3 +102,8 @@ internal class FeedRepository(
         return FeedRefreshResult(errors = errors)
     }
 }
+
+internal data class OpmlImportResult(
+    val importedCount: Int,
+    val errors: List<String>,
+)

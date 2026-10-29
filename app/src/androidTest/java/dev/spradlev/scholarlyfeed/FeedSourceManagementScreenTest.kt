@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Before
@@ -63,6 +64,9 @@ class FeedSourceManagementScreenTest {
                             .getStringExtra(android.app.SearchManager.QUERY)
                         !failWebSearch
                     },
+                    onImportOpml = { importedSources ->
+                        OpmlImportResult(importedSources.size, emptyList())
+                    },
                 )
             }
         }
@@ -82,8 +86,9 @@ class FeedSourceManagementScreenTest {
         composeRule.onNodeWithText("Last refreshed", substring = true).assertExists()
         assertEquals(1, sources.size)
 
-        composeRule.onNodeWithContentDescription("Remove Research Digest").performClick()
-        composeRule.onNodeWithText("No verified sources yet.").assertExists()
+        composeRule.onNodeWithContentDescription("Remove Research Digest")
+            .performScrollTo()
+            .performClick()
         assertEquals(0, sources.size)
     }
 
@@ -141,6 +146,16 @@ class FeedSourceManagementScreenTest {
 
         composeRule.onNodeWithText(
             "No web search app is available. You can still search the built-in directory or enter a feed URL.",
+        ).assertExists()
+    }
+
+    @Test
+    fun sourceScreenOffersOpmlImportAndExport() {
+        composeRule.onNodeWithText("OPML source lists").assertExists()
+        composeRule.onNodeWithText("Import OPML").assertExists()
+        composeRule.onNodeWithText("Export OPML").assertExists()
+        composeRule.onNodeWithText(
+            "Import feeds from an OPML file or export your verified sources. Imported feeds are verified before they are saved.",
         ).assertExists()
     }
 }

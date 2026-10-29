@@ -118,6 +118,9 @@ internal fun ScholarlyFeedScreen(database: FeedDatabase, fetcher: FeedFetcher) {
                     false
                 }
             },
+            onImportOpml = { opmlSources ->
+                repository.importOpml(opmlSources)
+            },
         )
     } else if (selectedArticle != null) {
         FeedArticleDetailScreen(

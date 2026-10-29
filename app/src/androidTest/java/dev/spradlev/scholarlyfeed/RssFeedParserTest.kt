@@ -31,6 +31,32 @@ class RssFeedParserTest {
     }
 
     @Test
+    fun removesDuplicateEntriesByGuidAndCanonicalUrl() = runBlocking {
+        val byGuid = parseFeedDocument(parser, DUPLICATE_GUID_FEED, "https://feeds.example.org/research.xml")
+        val byUrl = parseFeedDocument(parser, DUPLICATE_URL_FEED, "https://feeds.example.org/research.xml")
+
+        assertEquals(listOf("Keep first GUID entry"), byGuid.articles.map { it.title })
+        assertEquals(listOf("Keep first URL entry"), byUrl.articles.map { it.title })
+    }
+
+    @Test
+    fun preservesDistinctArticlesWithSimilarOrMissingIdentifiers() = runBlocking {
+        val feed = parseFeedDocument(parser, DISTINCT_ARTICLES_FEED, "https://feeds.example.org/research.xml")
+
+        assertEquals(
+            listOf("https://journal.example.org/articles/one", "https://journal.example.org/articles/two"),
+            feed.articles.mapNotNull { it.link },
+        )
+        val withoutIdentifiers = parseFeedDocument(
+            parser,
+            ARTICLES_WITHOUT_IDENTIFIERS,
+            "https://feeds.example.org/research.xml",
+        )
+        assertEquals(2, withoutIdentifiers.articles.size)
+        assertEquals(2, withoutIdentifiers.articles.map { it.id }.distinct().size)
+    }
+
+    @Test
     fun rejectsXmlThatIsNotAFeed() {
         runBlocking {
             try {
@@ -75,6 +101,34 @@ class RssFeedParserTest {
                 <summary>A brief excerpt.</summary>
               </entry>
             </feed>
+        """
+
+        const val DUPLICATE_GUID_FEED = """
+            <rss version="2.0"><channel><title>Research Digest</title>
+              <item><guid>shared-id</guid><title>Keep first GUID entry</title><link>https://journal.example.org/one</link></item>
+              <item><guid>shared-id</guid><title>Duplicate GUID entry</title><link>https://journal.example.org/two</link></item>
+            </channel></rss>
+        """
+
+        const val DUPLICATE_URL_FEED = """
+            <rss version="2.0"><channel><title>Research Digest</title>
+              <item><guid>first-id</guid><title>Keep first URL entry</title><link>https://journal.example.org/article#section-one</link></item>
+              <item><guid>second-id</guid><title>Duplicate URL entry</title><link>https://journal.example.org/article#section-two</link></item>
+            </channel></rss>
+        """
+
+        const val DISTINCT_ARTICLES_FEED = """
+            <rss version="2.0"><channel><title>Research Digest</title>
+              <item><guid>first-id</guid><title>Same title</title><link>https://journal.example.org/articles/one</link></item>
+              <item><guid>second-id</guid><title>Same title</title><link>https://journal.example.org/articles/two</link></item>
+            </channel></rss>
+        """
+
+        const val ARTICLES_WITHOUT_IDENTIFIERS = """
+            <rss version="2.0"><channel><title>Research Digest</title>
+              <item><title>Unidentified article</title></item>
+              <item><title>Unidentified article</title></item>
+            </channel></rss>
         """
     }
 }

@@ -155,12 +155,19 @@ internal suspend fun parseFeedDocument(
         throw FeedFetchException("The feed did not provide a title.")
     }
 
-    val articles = channel.items.mapNotNull { item ->
-        val articleTitle = item.title?.trim()?.takeIf(String::isNotEmpty) ?: return@mapNotNull null
+    val seenArticleKeys = mutableSetOf<String>()
+    val articles = channel.items.mapIndexedNotNull { index, item ->
+        val articleTitle = item.title?.trim()?.takeIf(String::isNotEmpty)
+            ?: return@mapIndexedNotNull null
         val link = item.link?.trim()?.takeIf(String::isNotEmpty)
-        val id = item.guid?.takeIf(String::isNotBlank)
-            ?: link
-            ?: "$articleTitle:${item.pubDate.orEmpty()}"
+        val guid = item.guid?.trim()?.takeIf(String::isNotEmpty)
+        val deduplicationKeys = articleDeduplicationKeys(guid, link)
+        val isDuplicate = deduplicationKeys.any(seenArticleKeys::contains)
+        seenArticleKeys.addAll(deduplicationKeys)
+        if (isDuplicate) return@mapIndexedNotNull null
+
+        val id = guid ?: link?.let(::canonicalArticleUrl)
+            ?: "$articleTitle:${item.pubDate.orEmpty()}:$index"
 
         FeedArticle(
             id = id,
@@ -179,6 +186,19 @@ internal suspend fun parseFeedDocument(
         resolvedUrl = resolvedUrl,
         articles = sortArticlesNewestFirst(articles),
     )
+}
+
+private fun articleDeduplicationKeys(guid: String?, link: String?): Set<String> = buildSet {
+    guid?.let { add("id:$it") }
+    link?.let { add("url:${canonicalArticleUrl(it)}") }
+}
+
+private fun canonicalArticleUrl(value: String): String {
+    val url = value.toHttpUrlOrNull() ?: return value
+    return url.newBuilder()
+        .fragment(null)
+        .build()
+        .toString()
 }
 
 private fun parsePublishedAt(value: String?): Long? {

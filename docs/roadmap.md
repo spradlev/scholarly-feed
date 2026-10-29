@@ -36,11 +36,12 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Hand off a publisher/topic search to the device's web search app.
 - [ ] Integrate in-app web search results through a search service.
 - [ ] Build a starter OPML with clearly documented candidate feeds.
-- [ ] Add, remove, categorize, import, and export sources.
+- [x] Add, remove, categorize, import, and export sources.
   - [x] Add, remove, and assign a source level.
+  - [x] Import and export verified sources through OPML, preserving source levels.
 - [x] Verify user-entered feeds and parse RSS and Atom.
 - [x] Sort newest-first, placing undated articles last while preserving their feed order.
-- [ ] Deduplicate entries.
+- [x] Deduplicate entries within a feed by GUID or normalized URL without merging distinct articles or source identities.
 - [x] Restrict direct fetches to HTTPS and apply redirect, timeout, response-size, content-type, and address checks.
 - [ ] Validate each starter feed URL and parser behavior before release.
 
@@ -53,7 +54,7 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Preserve cached entries when a source refresh fails; replace that source's cache only after a successful fetch.
 - [x] Show refresh progress and per-source errors.
 - [x] Record and show last successful refresh time per source.
-- [ ] Verify reading saved/cached items with network disabled.
+- [x] Verify reading saved/cached items from a reopened Room database without network access.
 - [ ] Design optional cloud sync alongside local-only storage; evaluate Google Drive, Box, Dropbox, and OneDrive before selecting providers.
 
 **Current limitation:** feed entries and available excerpts persist and can be opened in a detail view; full article text is not retrieved or cached.

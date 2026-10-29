@@ -1,7 +1,9 @@
 package dev.spradlev.scholarlyfeed
 
-import android.net.Uri
 import android.database.sqlite.SQLiteConstraintException
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,7 +36,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 private data class SourceLevel(
     val number: Int,
@@ -81,6 +85,7 @@ internal fun FeedSourceManagementScreen(
     onRemoveSource: (FeedSource) -> Unit,
     onBack: () -> Unit,
     onSearchWeb: (String) -> Boolean,
+    onImportOpml: suspend (List<OpmlSource>) -> OpmlImportResult,
 ) {
     var title by rememberSaveable { mutableStateOf("") }
     var feedUrl by rememberSaveable { mutableStateOf("") }
@@ -89,8 +94,68 @@ internal fun FeedSourceManagementScreen(
     var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var isVerifying by remember { mutableStateOf(false) }
     var showingDiscovery by rememberSaveable { mutableStateOf(false) }
+    var opmlMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var opmlMessageIsError by rememberSaveable { mutableStateOf(false) }
+    var isImportingOpml by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val selectedSourceLevel = sourceLevels.first { it.number == selectedLevel }
+    val importOpmlLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                isImportingOpml = true
+                opmlMessage = null
+                try {
+                    val opmlSources = readOpmlDocument(context, uri)
+                    val result = onImportOpml(opmlSources)
+                    opmlMessage = buildString {
+                        append("Imported ${result.importedCount} source")
+                        if (result.importedCount != 1) append("s")
+                        append(".")
+                        if (result.errors.isNotEmpty()) {
+                            append(" ")
+                            append(result.errors.take(3).joinToString(" "))
+                            if (result.errors.size > 3) append(" And ${result.errors.size - 3} more.")
+                        }
+                    }
+                    opmlMessageIsError = result.importedCount == 0 || result.errors.isNotEmpty()
+                } catch (exception: IOException) {
+                    opmlMessage = exception.message ?: "Could not read the selected OPML file."
+                    opmlMessageIsError = true
+                } catch (exception: OpmlFormatException) {
+                    opmlMessage = exception.message ?: "The selected file is not valid OPML."
+                    opmlMessageIsError = true
+                } catch (exception: SecurityException) {
+                    opmlMessage = exception.message ?: "Permission to read the selected OPML file was denied."
+                    opmlMessageIsError = true
+                } finally {
+                    isImportingOpml = false
+                }
+            }
+        }
+    }
+    val exportOpmlLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument(OPML_MIME_TYPE),
+    ) { uri ->
+        if (uri != null) {
+            try {
+                writeOpmlDocument(context, uri, createOpml(sources))
+                opmlMessage = "Exported ${sources.size} source${if (sources.size == 1) "" else "s"}."
+                opmlMessageIsError = false
+            } catch (exception: IOException) {
+                opmlMessage = exception.message ?: "Could not write the OPML file."
+                opmlMessageIsError = true
+            } catch (exception: OpmlFormatException) {
+                opmlMessage = exception.message ?: "Could not create the OPML file."
+                opmlMessageIsError = true
+            } catch (exception: SecurityException) {
+                opmlMessage = exception.message ?: "Permission to write the selected OPML file was denied."
+                opmlMessageIsError = true
+            }
+        }
+    }
 
     if (showingDiscovery) {
         SourceDiscoveryScreen(
@@ -132,6 +197,34 @@ internal fun FeedSourceManagementScreen(
             ) {
                 Text("Discover publishers")
             }
+            Text("OPML source lists", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Import feeds from an OPML file or export your verified sources. Imported feeds are verified before they are saved.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(
+                    onClick = { importOpmlLauncher.launch(arrayOf("*/*")) },
+                    enabled = !isImportingOpml,
+                    modifier = Modifier.testTag("importOpmlButton"),
+                ) {
+                    Text(if (isImportingOpml) "Importing…" else "Import OPML")
+                }
+                TextButton(
+                    onClick = { exportOpmlLauncher.launch("scholarly-feed-sources.opml") },
+                    enabled = sources.isNotEmpty(),
+                    modifier = Modifier.testTag("exportOpmlButton"),
+                ) {
+                    Text("Export OPML")
+                }
+            }
+            opmlMessage?.let { message ->
+                Text(
+                    text = message,
+                    color = if (opmlMessageIsError) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.primary,
+                )
+            }
             OutlinedTextField(
                 value = title,
                 onValueChange = {
@@ -169,6 +262,7 @@ internal fun FeedSourceManagementScreen(
                 ) {
                     Text(selectedSourceLevel.label)
                 }
+
                 DropdownMenu(
                     expanded = levelMenuExpanded,
                     onDismissRequest = { levelMenuExpanded = false },
@@ -183,6 +277,7 @@ internal fun FeedSourceManagementScreen(
                         )
                     }
                 }
+
             }
             Button(
                 onClick = {
@@ -253,6 +348,8 @@ internal fun FeedSourceManagementScreen(
         }
     }
 }
+
+private const val OPML_MIME_TYPE = "text/x-opml"
 
 @Composable
 private fun SourceDiscoveryScreen(

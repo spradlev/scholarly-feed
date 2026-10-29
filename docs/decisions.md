@@ -14,6 +14,7 @@ This file distinguishes user-confirmed decisions from proposals and open questio
 - **Learning preference:** The product owner expects beginner-friendly Android Studio guidance and wants to learn as the project develops.
 - **Source and article persistence:** Room stores verified feed-source metadata and fetched feed-entry metadata/excerpts on the device. Successful fetches replace only that source's cached entries; failed fetches preserve its prior entries.
 - **Refresh timestamps:** Store and display a last-successful-refresh time per source. Initialize it on successful source verification and update it only in the same transaction that replaces cached entries after a successful refresh.
+- **OPML source levels:** Export standard OPML 2.0 outlines with `text`, `title`, `type`, and `xmlUrl`, plus `scholarlyFeedLevel` to preserve this app's 1-4 levels. Imports without the extension default to Level 1. Imported URLs must still pass HTTPS checks and successful feed verification before saving.
 - **Feed fetching:** The Android app fetches user-entered HTTPS RSS/Atom URLs directly, with redirect, timeout, response-size, content-type, and destination-address checks. The user chose direct device fetching over a backend for this stage.
 - **Feed parser:** `com.prof18.rssparser:rssparser` parses RSS and Atom documents.
 - **Initial Discovery search:** Use Android's external web-search handoff rather than embedding a search provider. Results are not ingested; users manually enter and verify feed URLs.
