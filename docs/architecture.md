@@ -5,12 +5,12 @@ This document records the intended direction and distinguishes it from the curre
 ## Current implementation
 
 - **UI:** Compose feed and source-management screens; source operations are invoked through a small repository.
-- **Sources:** Room stores a verified source's URL, user label, parsed feed title, level, and verification time.
+- **Sources and feed entries:** Room stores verified source metadata and fetched article metadata/excerpts. Each entry belongs to a source and is replaced transactionally only after that source fetch succeeds; source removal cascades to its entries.
 - **Feed ingestion:** OkHttp fetches user-entered HTTPS URLs with manual redirect checks, timeouts, a 2 MiB response cap, content-type checks, and public-address DNS filtering. RSS Parser handles RSS/Atom parsing and article ordering.
-- **Article results:** Available in memory after verification or refresh only. They are not persisted, so offline article reading is not available yet.
+- **Article content:** Only feed-provided metadata and excerpts are cached. Full article text extraction and an article detail screen are not implemented.
 - **Not implemented:** ViewModels, OPML, article detail, deduplication, Focus Mode feed filtering, and the Librarian.
 
-The network safeguards run on-device and are not a substitute for server-side egress controls if the architecture later accepts arbitrary remote URLs.
+The Room database upgrades version 1 source-only installations to version 2 without dropping their saved sources. The network safeguards run on-device and are not a substitute for server-side egress controls if the architecture later accepts arbitrary remote URLs.
 
 ## Initial application
 
@@ -55,6 +55,10 @@ Focus Mode is a filter, not a ranking algorithm. It should exclude Levels 3 and 
 - Refreshes update local data transactionally or in a way that does not wipe good cached data on failure.
 - The UI distinguishes cached content from a failed refresh.
 - AI requests may require connectivity; explain that clearly and never block ordinary reading on AI availability.
+
+## Future synchronization
+
+Local-only storage remains a supported option. A later sync feature may let the user opt into a cloud storage provider such as Google Drive, Box, Dropbox, or OneDrive. Provider integrations, account linking, sync scope, conflict handling, and remote data format are not selected or implemented; keep local storage usable without connecting any cloud account.
 
 ## Librarian grounding
 
