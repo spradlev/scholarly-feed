@@ -375,6 +375,14 @@ private fun SourceListItem(
                 "Verified ${java.text.DateFormat.getDateInstance().format(java.util.Date(source.verifiedAtMillis))}",
                 style = MaterialTheme.typography.bodySmall,
             )
+            source.lastSuccessfulRefreshAtMillis?.let { refreshedAtMillis ->
+                Text(
+                    "Last refreshed ${
+                        java.text.DateFormat.getDateTimeInstance().format(java.util.Date(refreshedAtMillis))
+                    }",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            } ?: Text("Not refreshed yet.", style = MaterialTheme.typography.bodySmall)
         }
         TextButton(
             onClick = onRemove,

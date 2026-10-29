@@ -52,7 +52,7 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Cache fetched feed entries and excerpts.
 - [x] Preserve cached entries when a source refresh fails; replace that source's cache only after a successful fetch.
 - [x] Show refresh progress and per-source errors.
-- [ ] Record and show last successful refresh time.
+- [x] Record and show last successful refresh time per source.
 - [ ] Verify reading saved/cached items with network disabled.
 - [ ] Design optional cloud sync alongside local-only storage; evaluate Google Drive, Box, Dropbox, and OneDrive before selecting providers.
 

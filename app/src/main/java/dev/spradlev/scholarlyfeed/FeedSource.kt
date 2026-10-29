@@ -10,4 +10,5 @@ internal data class FeedSource(
     val feedTitle: String,
     val level: Int,
     val verifiedAtMillis: Long,
+    val lastSuccessfulRefreshAtMillis: Long? = null,
 )

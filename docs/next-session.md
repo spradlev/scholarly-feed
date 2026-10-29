@@ -1,4 +1,4 @@
-# Next session: improve accessibility coverage
+# Next session: verify offline reading
 
 ## Current state
 
@@ -11,6 +11,7 @@
 - Refresh fetches article metadata, sorts dated articles newest-first, and keeps undated items at the end. Sources and fetched entries/excerpts persist in Room. Successful refreshes replace only that source's entries; failures keep the existing cache.
 - Tapping a cached feed entry opens a detail view with its source, publication date, feed excerpt, and a link to the original web article when available. Full article text is not cached.
 - Focus Mode filters the displayed feed to Level 1 research and scientific reporting; turning it off restores entries from all source levels without changing cached data.
+- Each source shows the timestamp of its last successful refresh. Failed refreshes leave both the saved articles and timestamp unchanged.
 - Direct fetches include redirect, timeout, size, content-type, and destination-address checks. The app has not yet been tested against a real publisher feed URL.
 - Instrumentation tests cover Focus Mode state, verified-source UI flow, Room source persistence, RSS/Atom parsing, and URL/address policy; Android lint passes.
 - The app has been run on the Medium Phone API 37 emulator.
@@ -19,12 +20,12 @@
 
 ## Goal
 
-Continue with a small, tested accessibility slice, starting with reviewing the implemented navigation and interactive controls.
+Continue with a small verification slice: confirm cached entries and their detail views remain readable with network access unavailable.
 
 ## Steps
 
-1. Audit screen-reader labels, roles, traversal order, and touch targets for the feed and article detail view.
-2. Add focused tests for any accessibility regressions found.
+1. Verify the app can start and display cached feed entries and details without network access.
+2. Record any gaps between current behavior and offline-reading expectations.
 
 ## Important
 

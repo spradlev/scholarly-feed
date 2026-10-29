@@ -65,7 +65,10 @@ class FeedArticleDetailScreenTest {
             }
         }
 
-        composeRule.onNodeWithContentDescription("Open article: A research finding").performClick()
+        composeRule.onNodeWithContentDescription(
+            "Open article: A research finding",
+            useUnmergedTree = true,
+        ).performClick()
         composeRule.onNodeWithText("A research finding").assertExists()
         composeRule.onNodeWithText("Research Digest").assertExists()
         composeRule.onNodeWithText("Published 2026-10-28T12:00:00Z").assertExists()

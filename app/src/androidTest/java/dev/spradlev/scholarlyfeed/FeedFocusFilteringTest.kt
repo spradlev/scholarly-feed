@@ -63,18 +63,21 @@ class FeedFocusFilteringTest {
             }
         }
 
-        composeRule.onNodeWithText("Research finding").assertExists()
-        composeRule.onNodeWithText("Civic report").assertExists()
+        composeRule.onNodeWithText("Research finding", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("Civic report", useUnmergedTree = true).assertExists()
 
         composeRule.onNodeWithContentDescription("Focus Mode").performClick()
         composeRule.onNodeWithText("Showing Level 1: Research and scientific reporting.").assertExists()
-        composeRule.onNodeWithText("Research finding").assertExists()
-        assertTrue(composeRule.onAllNodesWithText("Civic report").fetchSemanticsNodes().isEmpty())
+        composeRule.onNodeWithText("Research finding", useUnmergedTree = true).assertExists()
+        assertTrue(
+            composeRule.onAllNodesWithText("Civic report", useUnmergedTree = true)
+                .fetchSemanticsNodes().isEmpty(),
+        )
         assertEquals(0, fetcher.fetchCount)
 
         composeRule.onNodeWithContentDescription("Focus Mode").performClick()
-        composeRule.onNodeWithText("Research finding").assertExists()
-        composeRule.onNodeWithText("Civic report").assertExists()
+        composeRule.onNodeWithText("Research finding", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("Civic report", useUnmergedTree = true).assertExists()
         assertEquals(0, fetcher.fetchCount)
         runBlocking {
             assertEquals(2, database.feedArticleDao().observeArticles().first().size)

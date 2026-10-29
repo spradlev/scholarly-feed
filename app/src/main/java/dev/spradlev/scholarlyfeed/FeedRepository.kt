@@ -19,9 +19,11 @@ internal class FeedRepository(
 
     suspend fun verifyAndAdd(source: FeedSource): ParsedFeed {
         val parsedFeed = fetcher.fetch(source.feedUrl)
+        val verifiedAtMillis = nowMillis()
         val savedSource = source.copy(
             feedTitle = parsedFeed.title,
-            verifiedAtMillis = nowMillis(),
+            verifiedAtMillis = verifiedAtMillis,
+            lastSuccessfulRefreshAtMillis = verifiedAtMillis,
         )
         val articles = parsedFeed.articles
             .map { it.copy(sourceUrl = source.feedUrl, sourceTitle = source.title) }
@@ -53,6 +55,7 @@ internal class FeedRepository(
                     .mapIndexed { index, article -> CachedFeedArticle.from(article, index) }
                 database.withTransaction {
                     articleDao.replaceForSource(source.feedUrl, fetchedArticles)
+                    sourceDao.updateLastSuccessfulRefresh(source.feedUrl, nowMillis())
                 }
             } catch (exception: FeedFetchException) {
                 errors += "${source.title}: ${exception.message ?: "Could not load this feed."}"

@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
             FeedDatabase::class.java,
             "scholarly-feed.db",
         )
-            .addMigrations(FeedDatabase.MIGRATION_1_2)
+            .addMigrations(FeedDatabase.MIGRATION_1_2, FeedDatabase.MIGRATION_2_3)
             .build()
         val fetcher = SafeFeedFetcher()
         setContent {
