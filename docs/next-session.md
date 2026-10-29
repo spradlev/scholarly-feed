@@ -1,33 +1,32 @@
-# Next session: keep building Scholarly Feed
+# Next session: choose live source search
 
 ## Current state
 
 - Repository: https://github.com/spradlev/scholarly-feed
-- The repository contains a Kotlin + Jetpack Compose Android app with an empty-feed screen, Focus Mode, and source management.
-- The debug APK builds successfully with Android Gradle Plugin 9.2.0, Gradle 9.4.1, Kotlin 2.4.10, and Compose BOM 2026.09.00.
-- Sources can be added with a title, HTTPS URL, and one of four levels; they can be removed while the app process remains alive.
-- Sources are not persisted, verified, or fetched.
-- The Compose UI tests cover Focus Mode state and source add/remove; Android lint passes.
+- The repository contains a Kotlin + Jetpack Compose Android app with feed and source-management screens.
+- The debug APK builds with Android Gradle Plugin 9.2.0, Gradle 9.4.1, Kotlin 2.4.10, and Compose BOM 2026.09.00.
+- Sources are added only after the app successfully fetches and parses a user-entered HTTPS RSS/Atom URL; the source label, parsed title, level, URL, and verification time persist in Room.
+- The source-management screen includes a local searchable directory of publisher candidates. Selecting a candidate fills its name and source level; the user still supplies and verifies the feed URL. The directory is not live web search, and its entries are not verified feed endpoints.
+- Refresh fetches current article metadata, sorts dated articles newest-first, and keeps undated items at the end. Article results remain in memory only; there is no offline article cache.
+- Direct fetches include redirect, timeout, size, content-type, and destination-address checks. The app has not yet been tested against a real publisher feed URL.
+- Instrumentation tests cover Focus Mode state, verified-source UI flow, Room source persistence, RSS/Atom parsing, and URL/address policy; Android lint passes.
 - The app has been run on the Medium Phone API 37 emulator.
 - TalkBack exposes the Focus Mode label/state on focus, but dynamic state-change announcements were not observed.
 - The user wants step-by-step guidance and to learn while building.
 
 ## Goal
 
-Continue with a small, tested feature built on the source-management foundation. Keep verified feed ingestion, durable persistence, and AI as separate steps.
+Before implementing live web search, choose a search provider and define how candidate results will be labeled, linked, and verified. Do not add a remote search integration or invent feed URLs until that decision is made.
 
 ## Steps
 
-1. Open this repository root in Android Studio; do not create a nested project.
-2. Let Gradle sync finish, using Android Studio's bundled JDK if needed.
-3. If needed, start an emulator or connect a physical Android device and run the `app` configuration.
-4. Run `JAVA_HOME="/opt/android-studio/jbr" ANDROID_HOME="$HOME/Android/Sdk" ./gradlew :app:connectedDebugAndroidTest` for UI tests.
-5. Review the changed files and commit the verified work.
+1. Compare a managed search API with handing off to an external browser search.
+2. Keep any result as an unverified publisher/feed candidate until its exact RSS/Atom URL is verified by the app.
+3. Add the smallest integration slice and tests after the product decision.
 
 ## Important
 
 - Do not say the build works until it has been run successfully.
-- Do not create a second nested `scholarly-feed/scholarly-feed` project by accident; inspect the selected directory.
 - Never commit API keys, signing credentials, local machine secrets, or personal data.
-- The documented minimum SDK is currently API 26; revisit it before release.
-- If a command is needed, explain what it does before asking a beginner to run it.
+- Starter source names are candidates only; no feed endpoint has yet been verified against a live publisher.
+- The documented minimum SDK is API 26; revisit it before release.

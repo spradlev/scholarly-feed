@@ -9,7 +9,9 @@
 | 3 | National/global civic affairs | NPR |
 | 4 | Local/regional civic affairs | South Seattle Emerald, KUOW, Washington State Standard |
 
-These are source candidates, not confirmed feed endpoints. Do not ship guessed URLs as verified. Some outlets primarily publish press releases or summaries; link to the underlying paper or DOI when available and make the source type clear.
+These are source candidates, not confirmed feed endpoints. Do not ship guessed URLs as verified. The current app lets a user enter an exact URL and adds it only after an HTTPS request returns a parseable RSS/Atom feed with a title. No starter candidate feed has yet been verified in this project. Some outlets primarily publish press releases or summaries; link to the underlying paper or DOI when available and make the source type clear.
+
+The app's built-in Discovery directory contains publisher names and topic keywords from this candidate list. Searching it is local-only; it does not search the web or claim that a publisher has a supported feed. Selecting a candidate fills the source name and level, after which the user must enter and verify an exact HTTPS feed URL.
 
 ## Validation requirements
 
@@ -26,19 +28,17 @@ For every feed URL, record:
 
 A feed is not validated just because its home page opens or because a URL appears in a search result.
 
-## Runtime validation for suggested sources
+## Runtime validation for user-entered sources
 
 Before enabling the Add action:
 
-1. Accept only supported URL schemes (normally HTTPS; allow HTTP only if there is a documented reason).
-2. Validate safely on the server if the app backend fetches the URL.
-3. Prevent SSRF, including private/loopback/link-local destinations and unsafe redirect targets.
-4. Apply timeouts, redirect limits, response-size limits, and content-type checks.
-5. Parse the response as RSS or Atom and require at least a valid feed document.
-6. Show the actual resolved feed title/URL and a clear validation result.
-7. Only then enable Add; preserve a way to cancel.
+1. Accept HTTPS only, with no embedded credentials.
+2. Resolve and reject local, private, link-local, and reserved IP destinations; repeat validation after each redirect.
+3. Apply connection/read/call timeouts, a redirect limit, a 2 MiB response limit, and an XML/feed content-type allowlist.
+4. Parse the response as RSS or Atom and require a non-empty feed title.
+5. Show the parsed feed title and a clear success result after verification succeeds; save only the verified feed.
 
-Do not rely on client-only validation as a security boundary.
+The current checks run on-device and are defense-in-depth for user-entered URLs, not a server-side security boundary. Do not reuse this client-only design for arbitrary remote suggestions or a public proxy without adding server-side egress controls and independent security review.
 
 ## Research quality
 

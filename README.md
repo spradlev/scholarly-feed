@@ -4,7 +4,7 @@ Scholarly Feed is a distraction-free reader for scholarly and scientific article
 
 ## Project status
 
-The repository contains a minimal native Android app built with Kotlin and Jetpack Compose. It has an empty-feed screen, a Focus Mode toggle, and a source-management screen for adding and removing unverified feed sources. Sources are held in memory only; the app does not fetch feeds or persist sources across restarts. AI features are not implemented.
+The repository contains a native Android app built with Kotlin and Jetpack Compose. Users can search a built-in directory of publisher candidates by name or topic, enter a feed URL, verify and save RSS/Atom sources, assign one of four levels, and fetch articles on demand. Catalog entries are candidates, not verified feeds; live web search is not implemented. Source metadata persists locally in Room. Article results remain in memory and are lost when the app process ends, so offline article reading is not available yet. OPML, article detail, and AI features are not implemented. TalkBack behavior still needs a manual review.
 
 ## Build and run
 
@@ -25,7 +25,7 @@ JAVA_HOME="/opt/android-studio/jbr" ANDROID_HOME="$HOME/Android/Sdk" ./gradlew :
 
 The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
-To run the Compose UI test on a connected device or running emulator:
+To run the Android instrumentation tests on a connected device or running emulator:
 
 ```bash
 JAVA_HOME="/opt/android-studio/jbr" ANDROID_HOME="$HOME/Android/Sdk" ./gradlew :app:connectedDebugAndroidTest
