@@ -41,7 +41,7 @@ Priorities are deliberately sequential. A later phase should not begin until the
   - [x] Import and export verified sources through OPML, preserving source levels.
 - [x] Verify user-entered feeds and parse RSS and Atom.
 - [x] Sort newest-first, placing undated articles last while preserving their feed order.
-- [ ] Deduplicate entries.
+- [x] Deduplicate entries within a feed by GUID or normalized URL without merging distinct articles or source identities.
 - [x] Restrict direct fetches to HTTPS and apply redirect, timeout, response-size, content-type, and address checks.
 - [ ] Validate each starter feed URL and parser behavior before release.
 

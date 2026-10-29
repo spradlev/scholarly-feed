@@ -10,7 +10,8 @@ This document records the intended direction and distinguishes it from the curre
 - **Article content:** Only feed-provided metadata and excerpts are cached. Cached articles have a detail view; full article text extraction is not implemented.
 - **Refresh status:** Each source stores the time of its last successful fetch. Article replacement and timestamp updates commit together, so failed fetches preserve both.
 - **OPML:** Source list interchange uses OPML 2.0; `scholarlyFeedLevel` preserves source levels, while standard OPML without it defaults to Level 1. Import must route every URL through existing feed verification before persistence.
-- **Not implemented:** ViewModels, article deduplication, and the Librarian.
+- **Article identity:** Duplicate entries within a feed are removed when they share a GUID or HTTP(S) URL (ignoring URL fragments). Entries without either stable identifier remain distinct; different feeds retain their own source attribution.
+- **Not implemented:** ViewModels and the Librarian.
 
 The Room database upgrades version 1 source-only installations to version 2 without dropping their saved sources. The network safeguards run on-device and are not a substitute for server-side egress controls if the architecture later accepts arbitrary remote URLs.
 
