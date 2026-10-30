@@ -8,11 +8,14 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -396,258 +399,263 @@ internal fun FeedSourceManagementScreen(
     }
 
     Surface(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .keyboardFocusTraversal()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            TextButton(
-                onClick = onBack,
-                modifier = Modifier.testTag("backToFeedButton"),
-            ) {
-                Text("Back to feed")
-            }
-            Text(
-                text = "Sources",
-                style = MaterialTheme.typography.headlineMedium,
-            )
-            Text(
-                text = "Verify an RSS or Atom feed before adding it. Verified sources are saved on this device.",
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            TextButton(
-                onClick = { showingDiscovery = true },
-                modifier = Modifier.testTag("discoverSourcesButton"),
-            ) {
-                Text("Discover publishers")
-            }
-            Text("OPML source lists", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "Add the starter feeds or import an OPML file. Every feed is verified before it is saved. You can also export your verified sources.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Button(
-                onClick = {
-                    scope.launch {
-                        isImportingOpml = true
-                        isAddingStarterSources = true
-                        opmlMessage = null
-                        try {
-                            importOpmlSources(readStarterOpml(context))
-                        } catch (exception: IOException) {
-                            opmlMessage = exception.message ?: "Could not read the starter source list."
-                            opmlMessageIsError = true
-                        } catch (exception: OpmlFormatException) {
-                            opmlMessage = exception.message ?: "The starter source list is invalid."
-                            opmlMessageIsError = true
-                        } finally {
-                            isAddingStarterSources = false
-                            isImportingOpml = false
-                        }
-                    }
-                },
-                enabled = !isImportingOpml && !isSyncingDrive,
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
+                    .widthIn(max = READABLE_CONTENT_MAX_WIDTH)
                     .fillMaxWidth()
-                    .testTag("addStarterSourcesButton"),
+                    .fillMaxHeight()
+                    .align(Alignment.TopCenter)
+                    .verticalScroll(rememberScrollState())
+                    .keyboardFocusTraversal()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(if (isAddingStarterSources) "Adding…" else "Add starter sources")
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(
-                    onClick = { importOpmlLauncher.launch(arrayOf("*/*")) },
+                    onClick = onBack,
+                    modifier = Modifier.testTag("backToFeedButton"),
+                ) {
+                    Text("Back to feed")
+                }
+                Text(
+                    text = "Sources",
+                    style = MaterialTheme.typography.headlineMedium,
+                )
+                Text(
+                    text = "Verify an RSS or Atom feed before adding it. Verified sources are saved on this device.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                TextButton(
+                    onClick = { showingDiscovery = true },
+                    modifier = Modifier.testTag("discoverSourcesButton"),
+                ) {
+                    Text("Discover publishers")
+                }
+                Text("OPML source lists", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Add the starter feeds or import an OPML file. Every feed is verified before it is saved. You can also export your verified sources.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Button(
+                    onClick = {
+                        scope.launch {
+                            isImportingOpml = true
+                            isAddingStarterSources = true
+                            opmlMessage = null
+                            try {
+                                importOpmlSources(readStarterOpml(context))
+                            } catch (exception: IOException) {
+                                opmlMessage = exception.message ?: "Could not read the starter source list."
+                                opmlMessageIsError = true
+                            } catch (exception: OpmlFormatException) {
+                                opmlMessage = exception.message ?: "The starter source list is invalid."
+                                opmlMessageIsError = true
+                            } finally {
+                                isAddingStarterSources = false
+                                isImportingOpml = false
+                            }
+                        }
+                    },
                     enabled = !isImportingOpml && !isSyncingDrive,
-                    modifier = Modifier.testTag("importOpmlButton"),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("addStarterSourcesButton"),
                 ) {
-                    Text(if (isImportingOpml && !isAddingStarterSources) "Importing…" else "Import OPML")
+                    Text(if (isAddingStarterSources) "Adding…" else "Add starter sources")
                 }
-                TextButton(
-                    onClick = { exportOpmlLauncher.launch("scholarly-feed-sources.opml") },
-                    enabled = sources.isNotEmpty(),
-                    modifier = Modifier.testTag("exportOpmlButton"),
-                ) {
-                    Text("Export OPML")
-                }
-            }
-            opmlMessage?.let { message ->
-                Text(
-                    text = message,
-                    color = if (opmlMessageIsError) MaterialTheme.colorScheme.error
-                    else MaterialTheme.colorScheme.primary,
-                )
-            }
-            OutlinedTextField(
-                value = title,
-                onValueChange = {
-                    title = it
-                    errorMessage = null
-                },
-                label = { Text("Source name") },
-                enabled = !isSyncingDrive,
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("sourceTitleInput"),
-            )
-            OutlinedTextField(
-                value = feedUrl,
-                onValueChange = {
-                    feedUrl = it
-                    errorMessage = null
-                },
-                label = { Text("Public HTTPS feed URL") },
-                supportingText = { Text("The app fetches the feed to verify it and will load it again when refreshed.") },
-                enabled = !isSyncingDrive,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("sourceUrlInput"),
-            )
-            Column {
-                Text(
-                    text = "Source level",
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                TextButton(
-                    onClick = { levelMenuExpanded = true },
-                    enabled = !isSyncingDrive,
-                    modifier = Modifier.testTag("sourceLevelSelector"),
-                ) {
-                    Text(selectedSourceLevel.label)
-                }
-
-                DropdownMenu(
-                    expanded = levelMenuExpanded,
-                    onDismissRequest = { levelMenuExpanded = false },
-                ) {
-                    sourceLevels.forEach { level ->
-                        DropdownMenuItem(
-                            text = { Text(level.label) },
-                            onClick = {
-                                selectedLevel = level.number
-                                levelMenuExpanded = false
-                            },
-                        )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(
+                        onClick = { importOpmlLauncher.launch(arrayOf("*/*")) },
+                        enabled = !isImportingOpml && !isSyncingDrive,
+                        modifier = Modifier.testTag("importOpmlButton"),
+                    ) {
+                        Text(if (isImportingOpml && !isAddingStarterSources) "Importing…" else "Import OPML")
+                    }
+                    TextButton(
+                        onClick = { exportOpmlLauncher.launch("scholarly-feed-sources.opml") },
+                        enabled = sources.isNotEmpty(),
+                        modifier = Modifier.testTag("exportOpmlButton"),
+                    ) {
+                        Text("Export OPML")
                     }
                 }
+                opmlMessage?.let { message ->
+                    Text(
+                        text = message,
+                        color = if (opmlMessageIsError) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.primary,
+                    )
+                }
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = {
+                        title = it
+                        errorMessage = null
+                    },
+                    label = { Text("Source name") },
+                    enabled = !isSyncingDrive,
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("sourceTitleInput"),
+                )
+                OutlinedTextField(
+                    value = feedUrl,
+                    onValueChange = {
+                        feedUrl = it
+                        errorMessage = null
+                    },
+                    label = { Text("Public HTTPS feed URL") },
+                    supportingText = { Text("The app fetches the feed to verify it and will load it again when refreshed.") },
+                    enabled = !isSyncingDrive,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("sourceUrlInput"),
+                )
+                Column {
+                    Text(
+                        text = "Source level",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    TextButton(
+                        onClick = { levelMenuExpanded = true },
+                        enabled = !isSyncingDrive,
+                        modifier = Modifier.testTag("sourceLevelSelector"),
+                    ) {
+                        Text(selectedSourceLevel.label)
+                    }
 
-            }
-            Button(
-                onClick = {
-                    val normalizedTitle = title.trim()
-                    val normalizedUrl = feedUrl.trim()
-                    when {
-                        normalizedTitle.isEmpty() -> {
-                            errorMessage = "Enter a source name."
+                    DropdownMenu(
+                        expanded = levelMenuExpanded,
+                        onDismissRequest = { levelMenuExpanded = false },
+                    ) {
+                        sourceLevels.forEach { level ->
+                            DropdownMenuItem(
+                                text = { Text(level.label) },
+                                onClick = {
+                                    selectedLevel = level.number
+                                    levelMenuExpanded = false
+                                },
+                            )
                         }
-                        !isHttpsUrl(normalizedUrl) -> {
-                            errorMessage = "Enter a valid HTTPS URL with a host."
-                        }
-                        sources.any { it.feedUrl == normalizedUrl } -> {
-                            errorMessage = "This feed URL is already in your list."
-                        }
-                        else -> {
-                            scope.launch {
-                                isVerifying = true
-                                errorMessage = null
-                                try {
-                                    val source = FeedSource(
-                                        feedUrl = normalizedUrl,
-                                        title = normalizedTitle,
-                                        feedTitle = "",
-                                        level = selectedLevel,
-                                        verifiedAtMillis = 0L,
-                                    )
-                                    val parsedFeed = onVerifyAndAdd(source)
-                                    title = ""
-                                    feedUrl = ""
-                                    selectedLevel = 1
-                                    errorMessage = "Verified ${parsedFeed.title} and added it."
-                                } catch (exception: FeedFetchException) {
-                                    errorMessage = exception.message ?: "Could not verify this feed."
-                                } catch (exception: SQLiteConstraintException) {
-                                    errorMessage = "This feed URL is already in your list."
-                                } finally {
-                                    isVerifying = false
+                    }
+
+                }
+                Button(
+                    onClick = {
+                        val normalizedTitle = title.trim()
+                        val normalizedUrl = feedUrl.trim()
+                        when {
+                            normalizedTitle.isEmpty() -> {
+                                errorMessage = "Enter a source name."
+                            }
+                            !isHttpsUrl(normalizedUrl) -> {
+                                errorMessage = "Enter a valid HTTPS URL with a host."
+                            }
+                            sources.any { it.feedUrl == normalizedUrl } -> {
+                                errorMessage = "This feed URL is already in your list."
+                            }
+                            else -> {
+                                scope.launch {
+                                    isVerifying = true
+                                    errorMessage = null
+                                    try {
+                                        val source = FeedSource(
+                                            feedUrl = normalizedUrl,
+                                            title = normalizedTitle,
+                                            feedTitle = "",
+                                            level = selectedLevel,
+                                            verifiedAtMillis = 0L,
+                                        )
+                                        val parsedFeed = onVerifyAndAdd(source)
+                                        title = ""
+                                        feedUrl = ""
+                                        selectedLevel = 1
+                                        errorMessage = "Verified ${parsedFeed.title} and added it."
+                                    } catch (exception: FeedFetchException) {
+                                        errorMessage = exception.message ?: "Could not verify this feed."
+                                    } catch (exception: SQLiteConstraintException) {
+                                        errorMessage = "This feed URL is already in your list."
+                                    } finally {
+                                        isVerifying = false
+                                    }
                                 }
                             }
                         }
-                    }
-                },
-                enabled = !isVerifying && !isSyncingDrive && title.isNotBlank() && feedUrl.isNotBlank(),
-            ) {
-                Text(if (isVerifying) "Verifying feed…" else "Verify and add")
-            }
-            errorMessage?.let { message ->
-                Text(
-                    text = message,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            Text(
-                text = "Verified sources",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            if (sources.isEmpty()) {
-                Text("No verified sources yet.")
-            } else {
-                sources.forEach { source ->
-                    SourceListItem(
-                        source = source,
-                        enabled = !isSyncingDrive,
-                        onRemove = { onRemoveSource(source) },
+                    },
+                    enabled = !isVerifying && !isSyncingDrive && title.isNotBlank() && feedUrl.isNotBlank(),
+                ) {
+                    Text(if (isVerifying) "Verifying feed…" else "Verify and add")
+                }
+                errorMessage?.let { message ->
+                    Text(
+                        text = message,
+                        color = MaterialTheme.colorScheme.error,
                     )
                 }
-            }
-            Text("Google Drive source sync", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "Optional manual sync stores only this source list in the app's private Drive data. Cached articles stay on this device. New feeds from Drive are verified before they are added.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Button(
-                onClick = ::requestDriveSync,
-                enabled = !isSyncingDrive && !isImportingOpml && !isVerifying,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("googleDriveSyncButton"),
-            ) {
                 Text(
-                    when {
-                        isSyncingDrive -> "Syncing sources…"
-                        isDriveConnected -> "Sync sources with Google Drive"
-                        else -> "Connect Google Drive and sync"
-                    },
+                    text = "Verified sources",
+                    style = MaterialTheme.typography.titleMedium,
                 )
-            }
-            if (isDriveConnected) {
-                TextButton(
-                    onClick = ::disconnectGoogleDrive,
-                    enabled = !isSyncingDrive,
-                    modifier = Modifier.testTag("disconnectGoogleDriveButton"),
-                ) {
-                    Text("Disconnect Google Drive")
+                if (sources.isEmpty()) {
+                    Text("No verified sources yet.")
+                } else {
+                    sources.forEach { source ->
+                        SourceListItem(
+                            source = source,
+                            enabled = !isSyncingDrive,
+                            onRemove = { onRemoveSource(source) },
+                        )
+                    }
                 }
-            }
-            driveMessage?.let { message ->
+                Text("Google Drive source sync", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = message,
-                    color = if (
-                        message.contains("could not", ignoreCase = true) ||
-                        message.contains("failed", ignoreCase = true) ||
-                        message.contains("not granted", ignoreCase = true) ||
-                        message.contains("denied", ignoreCase = true) ||
-                        message.contains("invalid", ignoreCase = true) ||
-                        message.contains("not available", ignoreCase = true)
-                    ) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.primary
-                    },
+                    "Optional manual sync stores only this source list in the app's private Drive data. Cached articles stay on this device. New feeds from Drive are verified before they are added.",
+                    style = MaterialTheme.typography.bodyMedium,
                 )
+                Button(
+                    onClick = ::requestDriveSync,
+                    enabled = !isSyncingDrive && !isImportingOpml && !isVerifying,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("googleDriveSyncButton"),
+                ) {
+                    Text(
+                        when {
+                            isSyncingDrive -> "Syncing sources…"
+                            isDriveConnected -> "Sync sources with Google Drive"
+                            else -> "Connect Google Drive and sync"
+                        },
+                    )
+                }
+                if (isDriveConnected) {
+                    TextButton(
+                        onClick = ::disconnectGoogleDrive,
+                        enabled = !isSyncingDrive,
+                        modifier = Modifier.testTag("disconnectGoogleDriveButton"),
+                    ) {
+                        Text("Disconnect Google Drive")
+                    }
+                }
+                driveMessage?.let { message ->
+                    Text(
+                        text = message,
+                        color = if (
+                            message.contains("could not", ignoreCase = true) ||
+                            message.contains("failed", ignoreCase = true) ||
+                            message.contains("not granted", ignoreCase = true) ||
+                            message.contains("denied", ignoreCase = true) ||
+                            message.contains("invalid", ignoreCase = true) ||
+                            message.contains("not available", ignoreCase = true)
+                        ) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
+                    )
+                }
             }
         }
     }
@@ -753,80 +761,85 @@ private fun SourceDiscoveryScreen(
     }
 
     Surface(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .keyboardFocusTraversal()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            TextButton(onClick = onBack) {
-                Text("Back to sources")
-            }
-            Text(
-                text = "Discover publishers",
-                style = MaterialTheme.typography.headlineMedium,
-            )
-            Text(
-                text = "Search this starter directory or search the web for feed links. Directory entries are candidates, not verified feeds.",
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = { Text("Search publishers or topics") },
-                singleLine = true,
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
+                    .widthIn(max = READABLE_CONTENT_MAX_WIDTH)
                     .fillMaxWidth()
-                    .testTag("sourceDiscoverySearch"),
-            )
-            Button(
-                onClick = {
-                    searchError = !onSearchWeb(query.trim())
-                },
-                enabled = query.isNotBlank(),
-                modifier = Modifier.testTag("searchWebButton"),
+                    .fillMaxHeight()
+                    .align(Alignment.TopCenter)
+                    .verticalScroll(rememberScrollState())
+                    .keyboardFocusTraversal()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text("Search the web for RSS feeds")
-            }
-            if (searchError) {
+                TextButton(onClick = onBack) {
+                    Text("Back to sources")
+                }
                 Text(
-                    text = "No web search app is available. You can still search the built-in directory or enter a feed URL.",
-                    color = MaterialTheme.colorScheme.error,
+                    text = "Discover publishers",
+                    style = MaterialTheme.typography.headlineMedium,
                 )
-            }
-            if (matchingCandidates.isEmpty()) {
-                Text("No candidates match. Try another publisher or topic, or search the web.")
-            } else {
-                matchingCandidates.forEach { candidate ->
-                    val level = sourceLevels.first { it.number == candidate.level }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                Text(
+                    text = "Search this starter directory or search the web for feed links. Directory entries are candidates, not verified feeds.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text("Search publishers or topics") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("sourceDiscoverySearch"),
+                )
+                Button(
+                    onClick = {
+                        searchError = !onSearchWeb(query.trim())
+                    },
+                    enabled = query.isNotBlank(),
+                    modifier = Modifier.testTag("searchWebButton"),
+                ) {
+                    Text("Search the web for RSS feeds")
+                }
+                if (searchError) {
+                    Text(
+                        text = "No web search app is available. You can still search the built-in directory or enter a feed URL.",
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                if (matchingCandidates.isEmpty()) {
+                    Text("No candidates match. Try another publisher or topic, or search the web.")
+                } else {
+                    matchingCandidates.forEach { candidate ->
+                        val level = sourceLevels.first { it.number == candidate.level }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(candidate.name, style = MaterialTheme.typography.titleMedium)
-                            Text(candidate.topics, style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                "Candidate · ${level.label}",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                        TextButton(
-                            onClick = { onSelect(candidate) },
-                            modifier = Modifier.testTag("selectCandidate-${candidate.name}"),
-                        ) {
-                            Text("Use")
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Text(candidate.name, style = MaterialTheme.typography.titleMedium)
+                                Text(candidate.topics, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    "Candidate · ${level.label}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                            TextButton(
+                                onClick = { onSelect(candidate) },
+                                modifier = Modifier.testTag("selectCandidate-${candidate.name}"),
+                            ) {
+                                Text("Use")
+                            }
                         }
                     }
-                }
+            }
             }
         }
     }

@@ -10,14 +10,18 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
 import androidx.room.Room
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
@@ -47,6 +51,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
 class MainActivity : ComponentActivity() {
@@ -61,7 +66,7 @@ class MainActivity : ComponentActivity() {
             .build()
         val fetcher = SafeFeedFetcher()
         setContent {
-            MaterialTheme {
+            MaterialTheme(typography = ReadableTypography) {
                 ScholarlyFeedScreen(database, fetcher)
             }
         }
@@ -140,117 +145,138 @@ internal fun ScholarlyFeedScreen(database: FeedDatabase, fetcher: FeedFetcher) {
         )
     } else {
         Surface(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .keyboardFocusTraversal()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+            Box(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .widthIn(max = READABLE_CONTENT_MAX_WIDTH)
+                        .fillMaxWidth()
+                        .fillMaxHeight()
+                        .align(Alignment.TopCenter)
+                        .keyboardFocusTraversal()
+                        .padding(24.dp)
+                        .testTag("feedArticleList"),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Text(
-                        text = "Scholarly Feed",
-                        style = MaterialTheme.typography.headlineMedium,
-                    )
-                    IconButton(
-                        onClick = { showingSources = true },
-                        modifier = Modifier.semantics {
-                            contentDescription = "Settings"
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Settings,
-                            contentDescription = null,
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Scholarly Feed",
+                                style = MaterialTheme.typography.headlineMedium,
+                            )
+                            IconButton(
+                                onClick = { showingSources = true },
+                                modifier = Modifier.semantics {
+                                    contentDescription = "Settings"
+                                },
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Settings,
+                                    contentDescription = null,
+                                )
+                            }
+                        }
+                    }
+                    if (articles.isEmpty() && sources.isEmpty()) {
+                        item {
+                            Text(
+                                text = "Your feed is empty. Add sources to set up your reading list.",
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                        }
+                    } else if (visibleArticles.isNotEmpty()) {
+                        item { Text("Latest articles", style = MaterialTheme.typography.titleLarge) }
+                    }
+                    item {
+                        Text(
+                            text = "Fetched feed entries and available excerpts are saved on this device.",
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     }
-                }
-                if (articles.isEmpty() && sources.isEmpty()) {
-                    Text(
-                        text = "Your feed is empty. Add sources to set up your reading list.",
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                } else if (visibleArticles.isNotEmpty()) {
-                    Text("Latest articles", style = MaterialTheme.typography.titleLarge)
-                }
-                Text(
-                    text = "Fetched feed entries and available excerpts are saved on this device.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Focus Mode",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.clearAndSetSemantics {},
-                    )
-                    Switch(
-                        checked = focusModeEnabled,
-                        onCheckedChange = { focusModeEnabled = it },
-                        modifier = Modifier.semantics {
-                            contentDescription = "Focus Mode"
-                            stateDescription = if (focusModeEnabled) "On" else "Off"
-                            liveRegion = LiveRegionMode.Polite
-                        },
-                    )
-                }
-                if (focusModeEnabled) {
-                    Text(
-                        text = "Showing Level 1: Research and scientific reporting.",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-                if (sources.isNotEmpty()) {
-                    TextButton(
-                        onClick = {
-                            scope.launch {
-                                isRefreshing = true
-                                refreshMessage = null
-                                try {
-                                    val result = repository.refreshSources(sources)
-                                    refreshMessage = result.errors
-                                        .takeIf(List<String>::isNotEmpty)
-                                        ?.joinToString("\n")
-                                } finally {
-                                    isRefreshing = false
-                                }
-                            }
-                        },
-                        enabled = !isRefreshing,
-                    ) {
-                        Text(if (isRefreshing) "Refreshing feeds…" else "Refresh feeds")
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Focus Mode",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.clearAndSetSemantics {},
+                            )
+                            Switch(
+                                checked = focusModeEnabled,
+                                onCheckedChange = { focusModeEnabled = it },
+                                modifier = Modifier.semantics {
+                                    contentDescription = "Focus Mode"
+                                    stateDescription = if (focusModeEnabled) "On" else "Off"
+                                    liveRegion = LiveRegionMode.Polite
+                                },
+                            )
+                        }
                     }
-                }
-                refreshMessage?.let { message ->
-                    Text(
-                        text = message,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-                if (articles.isEmpty() && sources.isNotEmpty() && !isRefreshing) {
-                    Text("No articles loaded. Refresh feeds to try again.")
-                }
-                if (
-                    focusModeEnabled &&
-                    articles.isNotEmpty() &&
-                    visibleArticles.isEmpty()
-                ) {
-                    Text("No Level 1 articles yet. Turn off Focus Mode to see all sources.")
-                }
-                visibleArticles.forEach { article ->
-                    FeedArticleListItem(
-                        article = article,
-                        onClick = { selectedArticle = article },
-                    )
+                    if (focusModeEnabled) {
+                        item {
+                            Text(
+                                text = "Showing Level 1: Research and scientific reporting.",
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                    if (sources.isNotEmpty()) {
+                        item {
+                            TextButton(
+                                onClick = {
+                                    scope.launch {
+                                        isRefreshing = true
+                                        refreshMessage = null
+                                        try {
+                                            val result = repository.refreshSources(sources)
+                                            refreshMessage = result.errors
+                                                .takeIf(List<String>::isNotEmpty)
+                                                ?.joinToString("\n")
+                                        } finally {
+                                            isRefreshing = false
+                                        }
+                                    }
+                                },
+                                enabled = !isRefreshing,
+                            ) {
+                                Text(if (isRefreshing) "Refreshing feeds…" else "Refresh feeds")
+                            }
+                        }
+                    }
+                    refreshMessage?.let { message ->
+                        item {
+                            Text(
+                                text = message,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                    if (articles.isEmpty() && sources.isNotEmpty() && !isRefreshing) {
+                        item { Text("No articles loaded. Refresh feeds to try again.") }
+                    }
+                    if (
+                        focusModeEnabled &&
+                        articles.isNotEmpty() &&
+                        visibleArticles.isEmpty()
+                    ) {
+                        item { Text("No Level 1 articles yet. Turn off Focus Mode to see all sources.") }
+                    }
+                    items(
+                        items = visibleArticles,
+                        key = { article -> "${article.sourceUrl}|${article.id}" },
+                    ) { article ->
+                        FeedArticleListItem(article = article) {
+                            selectedArticle = article
+                        }
+                    }
                 }
             }
         }
@@ -265,6 +291,7 @@ private fun FeedArticleListItem(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 48.dp)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics {
                 contentDescription = "Open article: ${article.title}"
