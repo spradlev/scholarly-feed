@@ -36,6 +36,8 @@ dependencies {
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
+    implementation("com.google.android.gms:play-services-auth:22.0.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.prof18.rssparser:rssparser:6.1.8")
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")

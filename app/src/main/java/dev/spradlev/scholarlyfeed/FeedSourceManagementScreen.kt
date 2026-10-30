@@ -1,7 +1,10 @@
 package dev.spradlev.scholarlyfeed
 
 import android.database.sqlite.SQLiteConstraintException
+import android.database.sqlite.SQLiteException
 import android.net.Uri
+import android.content.IntentSender
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -14,10 +17,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +44,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import java.io.IOException
+import com.google.android.gms.auth.api.identity.AuthorizationRequest
+import com.google.android.gms.auth.api.identity.AuthorizationResult
+import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.gms.auth.api.identity.RevokeAccessRequest
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
 
 private data class SourceLevel(
     val number: Int,
@@ -86,7 +97,10 @@ internal fun FeedSourceManagementScreen(
     onBack: () -> Unit,
     onSearchWeb: (String) -> Boolean,
     onImportOpml: suspend (List<OpmlSource>) -> OpmlImportResult,
+    onUpdateSourceMetadata: suspend (FeedSource) -> Unit,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var title by rememberSaveable { mutableStateOf("") }
     var feedUrl by rememberSaveable { mutableStateOf("") }
     var selectedLevel by rememberSaveable { mutableIntStateOf(1) }
@@ -98,9 +112,213 @@ internal fun FeedSourceManagementScreen(
     var opmlMessageIsError by rememberSaveable { mutableStateOf(false) }
     var isImportingOpml by remember { mutableStateOf(false) }
     var isAddingStarterSources by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    var isDriveConnected by remember(context) {
+        mutableStateOf(
+            context.getSharedPreferences(DRIVE_PREFERENCES, 0)
+                .getBoolean(DRIVE_CONNECTED_KEY, false),
+        )
+    }
+    var isSyncingDrive by remember { mutableStateOf(false) }
+    var driveMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingDriveSync by remember { mutableStateOf<PendingDriveSync?>(null) }
+    var useDriveConflictValues by remember { mutableStateOf(false) }
     val selectedSourceLevel = sourceLevels.first { it.number == selectedLevel }
+    val driveStore = remember { GoogleDriveSourceStore() }
+    val authorizationClient = remember(context) { Identity.getAuthorizationClient(context) }
+
+    fun setDriveConnected(connected: Boolean) {
+        isDriveConnected = connected
+        context.getSharedPreferences(DRIVE_PREFERENCES, 0)
+            .edit()
+            .putBoolean(DRIVE_CONNECTED_KEY, connected)
+            .apply()
+    }
+
+    suspend fun applyDriveSync(
+        accessToken: String,
+        remoteFile: DriveSourceFile?,
+        remoteSources: List<OpmlSource>,
+        useDriveConflictValues: Boolean,
+    ) {
+        val plan = planSourceSync(sources, remoteSources)
+        val importResult = onImportOpml(plan.driveOnly)
+        if (importResult.errors.isNotEmpty()) {
+            driveMessage = buildString {
+                append("Added ${importResult.importedCount} source")
+                if (importResult.importedCount != 1) append("s")
+                append(" from Drive, but some feeds could not be verified. The Drive copy was not changed.")
+                append(" ")
+                append(importResult.errors.take(2).joinToString(" "))
+                if (importResult.errors.size > 2) append(" And ${importResult.errors.size - 2} more.")
+            }
+            return
+        }
+
+        if (useDriveConflictValues) {
+            plan.conflicts.forEach { conflict ->
+                val local = sources.first { it.feedUrl == conflict.local.feedUrl }
+                if (local.title != conflict.drive.title || local.level != conflict.drive.level) {
+                    onUpdateSourceMetadata(
+                        local.copy(
+                            title = conflict.drive.title,
+                            level = conflict.drive.level,
+                        ),
+                    )
+                }
+            }
+        }
+
+        val mergedSources = mergeSourceLists(sources, remoteSources, useDriveConflictValues)
+        val fileId = driveStore.writeSourceFile(accessToken, remoteFile?.id, mergedSources)
+        setDriveConnected(true)
+        driveMessage = "Synced ${mergedSources.size} source${if (mergedSources.size == 1) "" else "s"} with Google Drive."
+    }
+
+    fun continueDriveSync(accessToken: String) {
+        scope.launch {
+            isSyncingDrive = true
+            driveMessage = null
+            try {
+                val remoteFile = driveStore.readSourceFile(accessToken)
+                setDriveConnected(true)
+                val remoteSources = remoteFile?.sources.orEmpty()
+                val plan = planSourceSync(sources, remoteSources)
+                if (plan.conflicts.isNotEmpty()) {
+                    useDriveConflictValues = false
+                    pendingDriveSync = PendingDriveSync(accessToken, remoteFile, remoteSources)
+                } else if (remoteFile == null && sources.isEmpty()) {
+                    driveMessage = "Add a source first, then sync it with Google Drive."
+                } else {
+                    applyDriveSync(
+                        accessToken = accessToken,
+                        remoteFile = remoteFile,
+                        remoteSources = remoteSources,
+                        useDriveConflictValues = false,
+                    )
+                }
+            } catch (exception: GoogleDriveSyncException) {
+                driveMessage = exception.message ?: "Could not sync sources with Google Drive."
+                if (driveMessage?.contains("access was denied or expired") == true) {
+                    setDriveConnected(false)
+                }
+            } catch (exception: OpmlFormatException) {
+                driveMessage = exception.message ?: "The Google Drive source list is invalid."
+            } catch (exception: IOException) {
+                driveMessage = exception.message ?: "Could not sync sources with Google Drive."
+            } catch (exception: SQLiteException) {
+                driveMessage = exception.message ?: "Could not save verified Google Drive sources on this device."
+            } finally {
+                if (pendingDriveSync == null) isSyncingDrive = false
+            }
+        }
+    }
+
+    fun handleAuthorizationResult(result: AuthorizationResult) {
+        if (!result.grantedScopes.contains(DRIVE_APP_DATA_SCOPE.scopeUri)) {
+            isSyncingDrive = false
+            driveMessage = "Google Drive access was not granted. Your sources remain on this device."
+            return
+        }
+        val accessToken = result.accessToken
+        if (accessToken.isNullOrBlank()) {
+            isSyncingDrive = false
+            driveMessage = "Google Drive did not provide an access token. Try again."
+            return
+        }
+        continueDriveSync(accessToken)
+    }
+
+    val driveAuthorizationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult(),
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK && result.data != null) {
+            try {
+                handleAuthorizationResult(
+                    authorizationClient.getAuthorizationResultFromIntent(result.data!!),
+                )
+            } catch (exception: ApiException) {
+                isSyncingDrive = false
+                driveMessage = exception.message ?: "Google Drive authorization failed. Try again."
+            }
+        } else {
+            isSyncingDrive = false
+            driveMessage = "Google Drive access was not granted. Your sources remain on this device."
+        }
+    }
+
+    fun requestDriveSync() {
+        isSyncingDrive = true
+        driveMessage = null
+        val request = AuthorizationRequest.builder()
+            .setRequestedScopes(listOf(DRIVE_APP_DATA_SCOPE))
+            .build()
+        authorizationClient.authorize(request)
+            .addOnSuccessListener { authorizationResult ->
+                if (authorizationResult.hasResolution()) {
+                    val pendingIntent = authorizationResult.pendingIntent
+                    if (pendingIntent == null) {
+                        isSyncingDrive = false
+                        driveMessage = "Google Drive needs permission, but no authorization prompt was available."
+                    } else {
+                        try {
+                            driveAuthorizationLauncher.launch(
+                                IntentSenderRequest.Builder(pendingIntent).build(),
+                            )
+                        } catch (exception: IntentSender.SendIntentException) {
+                            isSyncingDrive = false
+                            driveMessage = exception.message ?: "Could not open Google Drive authorization."
+                        }
+                    }
+                } else {
+                    handleAuthorizationResult(authorizationResult)
+                }
+            }
+            .addOnFailureListener { exception ->
+                isSyncingDrive = false
+                driveMessage = exception.message ?: "Could not authorize Google Drive on this device."
+            }
+    }
+
+    fun disconnectGoogleDrive() {
+        isSyncingDrive = true
+        val request = RevokeAccessRequest.builder()
+            .setScopes(listOf(DRIVE_APP_DATA_SCOPE))
+            .build()
+        authorizationClient.revokeAccess(request)
+            .addOnSuccessListener {
+                setDriveConnected(false)
+                isSyncingDrive = false
+                driveMessage = "Google Drive access disconnected. The private Drive copy was left unchanged."
+            }
+            .addOnFailureListener { exception ->
+                isSyncingDrive = false
+                driveMessage = exception.message ?: "Could not disconnect Google Drive access."
+            }
+    }
+
+    fun resolveDriveSync(pending: PendingDriveSync, useDriveConflictValues: Boolean) {
+        scope.launch {
+            try {
+                applyDriveSync(
+                    accessToken = pending.accessToken,
+                    remoteFile = pending.remoteFile,
+                    remoteSources = pending.remoteSources,
+                    useDriveConflictValues = useDriveConflictValues,
+                )
+            } catch (exception: GoogleDriveSyncException) {
+                driveMessage = exception.message ?: "Could not sync sources with Google Drive."
+            } catch (exception: OpmlFormatException) {
+                driveMessage = exception.message ?: "The Google Drive source list is invalid."
+            } catch (exception: IOException) {
+                driveMessage = exception.message ?: "Could not sync sources with Google Drive."
+            } catch (exception: SQLiteException) {
+                driveMessage = exception.message ?: "Could not save Google Drive source details on this device."
+            } finally {
+                pendingDriveSync = null
+                isSyncingDrive = false
+            }
+        }
+    }
 
     suspend fun importOpmlSources(opmlSources: List<OpmlSource>) {
         val result = onImportOpml(opmlSources)
@@ -227,7 +445,7 @@ internal fun FeedSourceManagementScreen(
                         }
                     }
                 },
-                enabled = !isImportingOpml,
+                enabled = !isImportingOpml && !isSyncingDrive,
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("addStarterSourcesButton"),
@@ -237,7 +455,7 @@ internal fun FeedSourceManagementScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(
                     onClick = { importOpmlLauncher.launch(arrayOf("*/*")) },
-                    enabled = !isImportingOpml,
+                    enabled = !isImportingOpml && !isSyncingDrive,
                     modifier = Modifier.testTag("importOpmlButton"),
                 ) {
                     Text(if (isImportingOpml && !isAddingStarterSources) "Importing…" else "Import OPML")
@@ -264,6 +482,7 @@ internal fun FeedSourceManagementScreen(
                     errorMessage = null
                 },
                 label = { Text("Source name") },
+                enabled = !isSyncingDrive,
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -277,6 +496,7 @@ internal fun FeedSourceManagementScreen(
                 },
                 label = { Text("Public HTTPS feed URL") },
                 supportingText = { Text("The app fetches the feed to verify it and will load it again when refreshed.") },
+                enabled = !isSyncingDrive,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                 modifier = Modifier
@@ -290,6 +510,7 @@ internal fun FeedSourceManagementScreen(
                 )
                 TextButton(
                     onClick = { levelMenuExpanded = true },
+                    enabled = !isSyncingDrive,
                     modifier = Modifier.testTag("sourceLevelSelector"),
                 ) {
                     Text(selectedSourceLevel.label)
@@ -353,7 +574,7 @@ internal fun FeedSourceManagementScreen(
                         }
                     }
                 },
-                enabled = !isVerifying && title.isNotBlank() && feedUrl.isNotBlank(),
+                enabled = !isVerifying && !isSyncingDrive && title.isNotBlank() && feedUrl.isNotBlank(),
             ) {
                 Text(if (isVerifying) "Verifying feed…" else "Verify and add")
             }
@@ -373,15 +594,141 @@ internal fun FeedSourceManagementScreen(
                 sources.forEach { source ->
                     SourceListItem(
                         source = source,
+                        enabled = !isSyncingDrive,
                         onRemove = { onRemoveSource(source) },
                     )
                 }
             }
+            Text("Google Drive source sync", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Optional manual sync stores only this source list in the app's private Drive data. Cached articles stay on this device. New feeds from Drive are verified before they are added.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Button(
+                onClick = ::requestDriveSync,
+                enabled = !isSyncingDrive && !isImportingOpml && !isVerifying,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("googleDriveSyncButton"),
+            ) {
+                Text(
+                    when {
+                        isSyncingDrive -> "Syncing sources…"
+                        isDriveConnected -> "Sync sources with Google Drive"
+                        else -> "Connect Google Drive and sync"
+                    },
+                )
+            }
+            if (isDriveConnected) {
+                TextButton(
+                    onClick = ::disconnectGoogleDrive,
+                    enabled = !isSyncingDrive,
+                    modifier = Modifier.testTag("disconnectGoogleDriveButton"),
+                ) {
+                    Text("Disconnect Google Drive")
+                }
+            }
+            driveMessage?.let { message ->
+                Text(
+                    text = message,
+                    color = if (
+                        message.contains("could not", ignoreCase = true) ||
+                        message.contains("failed", ignoreCase = true) ||
+                        message.contains("not granted", ignoreCase = true) ||
+                        message.contains("denied", ignoreCase = true) ||
+                        message.contains("invalid", ignoreCase = true) ||
+                        message.contains("not available", ignoreCase = true)
+                    ) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
+                )
+            }
         }
+    }
+
+    pendingDriveSync?.let { pending ->
+        val conflicts = planSourceSync(sources, pending.remoteSources).conflicts
+        val conflictSummary = conflicts
+            .take(3)
+            .joinToString("\n") { conflict ->
+                "${conflict.local.title} / ${conflict.drive.title}"
+            }
+        AlertDialog(
+            onDismissRequest = {
+                pendingDriveSync = null
+                isSyncingDrive = false
+                driveMessage = "Sync canceled. Neither list was replaced."
+            },
+            title = { Text("Resolve source-list differences") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        buildString {
+                            append(
+                                "${conflicts.size} feed URL${if (conflicts.size == 1) " has" else "s have"} different names or levels on this device and Drive.",
+                            )
+                            if (conflictSummary.isNotEmpty()) {
+                                append("\n\n")
+                                append(conflictSummary)
+                            }
+                            if (conflicts.size > 3) {
+                                append("\nAnd ${conflicts.size - 3} more.")
+                            }
+                            append("\n\nOther sources will be merged. Entries removed on one side are retained from the other; deletions are not synced.")
+                        },
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = !useDriveConflictValues,
+                            onClick = { useDriveConflictValues = false },
+                        )
+                        TextButton(onClick = { useDriveConflictValues = false }) {
+                            Text("Keep this device's details")
+                        }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = useDriveConflictValues,
+                            onClick = { useDriveConflictValues = true },
+                        )
+                        TextButton(onClick = { useDriveConflictValues = true }) {
+                            Text("Use Drive's details")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { resolveDriveSync(pending, useDriveConflictValues) }) {
+                    Text("Apply choice")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        pendingDriveSync = null
+                        isSyncingDrive = false
+                        driveMessage = "Sync canceled. Neither list was replaced."
+                    },
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
     }
 }
 
 private const val OPML_MIME_TYPE = "text/x-opml"
+private const val DRIVE_PREFERENCES = "google_drive_sync"
+private const val DRIVE_CONNECTED_KEY = "connected"
+private val DRIVE_APP_DATA_SCOPE = Scope("https://www.googleapis.com/auth/drive.appdata")
+
+private data class PendingDriveSync(
+    val accessToken: String,
+    val remoteFile: DriveSourceFile?,
+    val remoteSources: List<OpmlSource>,
+)
 
 @Composable
 private fun SourceDiscoveryScreen(
@@ -483,6 +830,7 @@ private fun SourceDiscoveryScreen(
 @Composable
 private fun SourceListItem(
     source: FeedSource,
+    enabled: Boolean,
     onRemove: () -> Unit,
 ) {
     val sourceLevel = sourceLevels.first { it.number == source.level }
@@ -515,6 +863,7 @@ private fun SourceListItem(
         }
         TextButton(
             onClick = onRemove,
+            enabled = enabled,
             modifier = Modifier.semantics {
                 contentDescription = "Remove ${source.title}"
             },

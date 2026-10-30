@@ -56,7 +56,8 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Show refresh progress and per-source errors.
 - [x] Record and show last successful refresh time per source.
 - [x] Verify reading saved/cached items from a reopened Room database without network access.
-- [ ] Design optional cloud sync alongside local-only storage; evaluate Google Drive, Box, Dropbox, and OneDrive before selecting providers.
+- [x] Select optional, manual Google Drive source-list sync in the private `appDataFolder`; preserve local-only use and keep article cache local.
+- [ ] Complete OAuth setup and validate cross-device source sync, including verification failures and conflict choices.
 
 **Current limitation:** feed entries and available excerpts persist and can be opened in a detail view; full article text is not retrieved or cached.
 

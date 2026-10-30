@@ -1,4 +1,4 @@
-# Next session: optional sync design
+# Next session: Google Drive source sync
 
 ## Current state
 
@@ -20,17 +20,19 @@
 - The app has been run on the Medium Phone API 37 emulator.
 - TalkBack exposes the Focus Mode label/state on focus, but dynamic state-change announcements were not observed.
 - Source management can add the bundled four-feed starter OPML directly; imports use the same per-feed verification and duplicate handling as document imports.
+- Google Drive source-list sync is under implementation. It is designed to be opt-in and manual, stores only OPML in Drive's private app-data folder, and leaves cached articles local.
 - The user wants step-by-step guidance and to learn while building.
 
 ## Goal
 
-Define a small, local-first design for optional feed synchronization, then compare Google Drive, Box, Dropbox, and OneDrive before selecting a provider.
+Finish and validate the first optional source-list sync with Google Drive, then proceed to in-app web search as previously agreed.
 
 ## Steps
 
-1. Define what data syncs and how local-only users remain unaffected.
-2. Compare provider APIs, account linking, privacy, conflict handling, and offline behavior.
-3. Keep provider selection and implementation out of scope until the trade-offs are clear.
+1. Review the current uncommitted Drive sync implementation and run targeted tests, the Android build, instrumentation tests, and lint.
+2. Resolve implementation defects and document setup/conflict behavior. Keep the local-only path working and never propagate deletions.
+3. Configure a Google Cloud OAuth project and matching Android OAuth client before attempting a live Drive account test. Keep credentials and tokens out of the repository.
+4. Once Drive sync is complete, begin the previously deferred in-app web search work.
 
 ## Important
 
@@ -39,4 +41,5 @@ Define a small, local-first design for optional feed synchronization, then compa
 - The starter OPML is a URL list, not a feed-content bundle; source verification still runs when imported.
 - Article deduplication is scoped to one feed response; do not combine articles across publishers because source identity and Focus Mode attribution must remain intact.
 - In-app web search is not implemented; external search results require manual feed URL entry and verification.
+- Live Drive authorization and storage behavior remain unverified until Google Cloud OAuth setup is complete.
 - The documented minimum SDK is API 26; revisit it before release.

@@ -20,6 +20,9 @@ internal interface FeedSourceDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(source: FeedSource)
 
+    @Query("UPDATE feed_sources SET title = :title, level = :level WHERE feedUrl = :feedUrl")
+    suspend fun updateMetadata(feedUrl: String, title: String, level: Int)
+
     @Query(
         "UPDATE feed_sources SET lastSuccessfulRefreshAtMillis = :refreshedAtMillis WHERE feedUrl = :feedUrl",
     )
@@ -99,6 +102,9 @@ internal interface FeedArticleDao {
 
     @Query("DELETE FROM feed_articles WHERE sourceUrl = :sourceUrl")
     suspend fun removeForSource(sourceUrl: String)
+
+    @Query("UPDATE feed_articles SET sourceTitle = :sourceTitle WHERE sourceUrl = :sourceUrl")
+    suspend fun updateSourceTitle(sourceUrl: String, sourceTitle: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(articles: List<CachedFeedArticle>)
