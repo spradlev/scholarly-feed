@@ -25,6 +25,7 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Apply Focus Mode to show only Level 1 research and scientific reporting.
 - [x] Article detail screen using cached feed data, with excerpts distinguished from full text.
 - [ ] Native navigation and logical accessibility traversal.
+- [x] Support reverse keyboard focus traversal with Shift+Tab on implemented app screens.
 - [ ] TalkBack smoke test and keyboard/focus review where applicable.
 
 **Done when:** the app can be navigated without sight using TalkBack for all implemented flows, with no inert controls or misleading actions.

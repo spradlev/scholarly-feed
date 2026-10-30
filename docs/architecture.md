@@ -6,7 +6,7 @@ This document records the intended direction and distinguishes it from the curre
 
 - **UI:** Compose feed and source-management screens; source operations are invoked through a small repository.
 - **Sources and feed entries:** Room stores verified source metadata and fetched article metadata/excerpts. Each entry belongs to a source and is replaced transactionally only after that source fetch succeeds; source removal cascades to its entries.
-- **Feed ingestion:** OkHttp fetches user-entered HTTPS URLs with manual redirect checks, timeouts, a 2 MiB response cap, content-type checks, and public-address DNS filtering. RSS Parser handles RSS/Atom parsing and article ordering.
+- **Feed ingestion:** OkHttp fetches user-entered HTTPS URLs with manual redirect checks, timeouts, a 4 MiB response cap, content-type checks, and public-address DNS filtering. RSS Parser handles RSS/Atom parsing and article ordering.
 - **Article content:** Only feed-provided metadata and excerpts are cached. Cached articles have a detail view; full article text extraction is not implemented.
 - **Refresh status:** Each source stores the time of its last successful fetch. Article replacement and timestamp updates commit together, so failed fetches preserve both.
 - **OPML:** Source list interchange uses OPML 2.0; `scholarlyFeedLevel` preserves source levels, while standard OPML without it defaults to Level 1. Import must route every URL through existing feed verification before persistence.

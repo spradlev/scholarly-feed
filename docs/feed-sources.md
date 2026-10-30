@@ -34,7 +34,7 @@ Before enabling the Add action:
 
 1. Accept HTTPS only, with no embedded credentials.
 2. Resolve and reject local, private, link-local, and reserved IP destinations; repeat validation after each redirect.
-3. Apply connection/read/call timeouts, a redirect limit, a 2 MiB response limit, and an XML/feed content-type allowlist.
+3. Apply connection/read/call timeouts, a redirect limit, a 4 MiB response limit, and an XML/feed content-type allowlist.
 4. Parse the response as RSS or Atom and require a non-empty feed title.
 5. Show the parsed feed title and a clear success result after verification succeeds; save only the verified feed.
 
@@ -50,13 +50,15 @@ The current checks run on-device and are defense-in-depth for user-entered URLs,
 
 ## Starter set and validation ledger
 
-The starter OPML file is [`starter-sources.opml`](starter-sources.opml). Its four URL-only entries cover one source at each level. The feed endpoints were fetched on 2026-10-28 and then passed through the Android app's `SafeFeedFetcher` on the API 37 emulator. That runtime check applies the app's HTTPS, redirect, public-address, timeout, response-size, content-type, and RSS/Atom parser rules. Every feed produced a non-empty title and entries with links and parsed publication timestamps.
+The starter OPML file is [`starter-sources.opml`](starter-sources.opml). Its six URL-only entries cover one source at Levels 2–4 and three Level 1 sources. The original four feed endpoints were fetched on 2026-10-28 and then passed through the Android app's `SafeFeedFetcher` on the API 37 emulator. The two arXiv endpoints were validated the same way on 2026-10-29. These runtime checks apply the app's HTTPS, redirect, public-address, timeout, response-size, content-type, and RSS/Atom parser rules. Every listed feed produced a non-empty title and entries with links and parsed publication timestamps.
 
 | Publisher | Level | Feed title | Exact URL | HTTP / type | Entry data and caveats |
 |---|---:|---|---|---|---|
 | ScienceDaily | 1 | Latest Science News -- ScienceDaily | `https://www.sciencedaily.com/rss/all.xml` | 200, `application/xml`; RSS | Linked entries and publication dates parsed. Feed descriptions are summaries; full article pages are not fetched. |
+| arXiv Computer Science | 1 | cs updates on arXiv.org | `https://rss.arxiv.org/rss/cs` | 200, `application/rss+xml`; RSS | Parsed through the app's production fetcher with the 4 MiB cap; current response is about 2.96 MB and has 1,397 entries. Entries include links and publication dates. Includes broad Computer Science topics, including AI. |
+| arXiv AI and Machine Learning | 1 | cs.AI updates on arXiv.org | `https://rss.arxiv.org/rss/cs.AI` | 200, `application/rss+xml`; RSS | Parsed through the app's production fetcher; current response is about 0.90 MB and has 407 entries. Entries include links and publication dates. Overlaps with the broader Computer Science feed. |
 | The Conversation (US) | 2 | The Conversation -- Articles (US) | `https://theconversation.com/us/articles.atom` | 200, `application/atom+xml`; Atom | Stable Atom entry IDs, alternate links, and published timestamps parsed. Entries provide HTML content; treat it as feed-provided content, not a guarantee of full article text. |
 | NPR News | 3 | NPR Topics: News | `https://feeds.npr.org/1001/rss.xml` | 200, `text/xml`; RSS | Linked entries and publication dates parsed. Descriptions provide feed summaries; NPR marks its feed for personal use. |
 | Washington State Standard | 4 | Washington State Standard | `https://washingtonstatestandard.com/feed/` | 200, `application/rss+xml`; RSS | Linked entries and publication dates parsed. Feed descriptions/content are publisher-provided; the app does not fetch article pages. |
 
-These are a tested snapshot, not a guarantee of future uptime or publisher policy. Import still re-verifies every URL before saving it. The other candidate endpoints remain unverified and are intentionally absent from the starter OPML.
+These are a tested snapshot, not a guarantee of future uptime or publisher policy. Import still re-verifies every URL before saving it. The arXiv Physics and astro-ph endpoints currently return valid but empty feeds and are intentionally absent until they contain entries; other candidate endpoints remain unverified and absent from the starter OPML.

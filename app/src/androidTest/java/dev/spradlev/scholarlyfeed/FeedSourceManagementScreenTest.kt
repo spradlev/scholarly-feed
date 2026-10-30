@@ -9,8 +9,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.input.key.Key
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Before
 import org.junit.Rule
@@ -166,13 +169,30 @@ class FeedSourceManagementScreenTest {
     }
 
     @Test
+    fun shiftTabMovesFocusToPreviousControl() {
+        composeRule.onNodeWithTag("sourceUrlInput").performClick()
+        composeRule.onNodeWithTag("sourceUrlInput").assertIsFocused()
+
+        composeRule.onNodeWithTag("sourceUrlInput").performKeyInput {
+            keyDown(Key.ShiftLeft)
+            keyDown(Key.Tab)
+            keyUp(Key.Tab)
+            keyUp(Key.ShiftLeft)
+        }
+
+        composeRule.onNodeWithTag("sourceTitleInput").assertIsFocused()
+    }
+
+    @Test
     fun addsBundledStarterSourcesThroughExistingImportFlow() {
         composeRule.onNodeWithTag("addStarterSourcesButton").performScrollTo().performClick()
 
-        composeRule.onNodeWithText("Imported 4 sources.").assertExists()
+        composeRule.onNodeWithText("Imported 6 sources.").assertExists()
         assertEquals(
             listOf(
                 OpmlSource("ScienceDaily", "https://www.sciencedaily.com/rss/all.xml", 1),
+                OpmlSource("arXiv Computer Science", "https://rss.arxiv.org/rss/cs", 1),
+                OpmlSource("arXiv AI and Machine Learning", "https://rss.arxiv.org/rss/cs.AI", 1),
                 OpmlSource(
                     "The Conversation (US)",
                     "https://theconversation.com/us/articles.atom",

@@ -5,6 +5,8 @@
   </head>
   <body>
     <outline text="ScienceDaily" title="ScienceDaily" type="rss" xmlUrl="https://www.sciencedaily.com/rss/all.xml" scholarlyFeedLevel="1" />
+    <outline text="arXiv Computer Science" title="arXiv Computer Science" type="rss" xmlUrl="https://rss.arxiv.org/rss/cs" scholarlyFeedLevel="1" />
+    <outline text="arXiv AI and Machine Learning" title="arXiv AI and Machine Learning" type="rss" xmlUrl="https://rss.arxiv.org/rss/cs.AI" scholarlyFeedLevel="1" />
     <outline text="The Conversation (US)" title="The Conversation (US)" type="atom" xmlUrl="https://theconversation.com/us/articles.atom" scholarlyFeedLevel="2" />
     <outline text="NPR News" title="NPR News" type="rss" xmlUrl="https://feeds.npr.org/1001/rss.xml" scholarlyFeedLevel="3" />
     <outline text="Washington State Standard" title="Washington State Standard" type="rss" xmlUrl="https://washingtonstatestandard.com/feed/" scholarlyFeedLevel="4" />

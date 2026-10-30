@@ -400,10 +400,14 @@ internal fun FeedSourceManagementScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .keyboardFocusTraversal()
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            TextButton(onClick = onBack) {
+            TextButton(
+                onClick = onBack,
+                modifier = Modifier.testTag("backToFeedButton"),
+            ) {
                 Text("Back to feed")
             }
             Text(
@@ -753,6 +757,7 @@ private fun SourceDiscoveryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .keyboardFocusTraversal()
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {

@@ -7,6 +7,8 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.Inet6Address
@@ -27,7 +29,7 @@ internal class SafeFeedFetcher(
     private val parser: RssParser = RssParser(),
     private val client: OkHttpClient = createHttpClient(),
 ) : FeedFetcher {
-    override suspend fun fetch(url: String): ParsedFeed {
+    override suspend fun fetch(url: String): ParsedFeed = withContext(Dispatchers.IO) {
         var currentUrl = validateFeedUrl(url)
 
         repeat(MAX_REDIRECTS + 1) { redirectCount ->
@@ -67,7 +69,7 @@ internal class SafeFeedFetcher(
                     throw FeedFetchException("The server did not return an RSS or Atom XML content type.")
                 }
                 if (body.contentLength() > MAX_FEED_BYTES) {
-                    throw FeedFetchException("The feed is larger than the 2 MB limit.")
+                    throw FeedFetchException("The feed is larger than the 4 MiB limit.")
                 }
 
                 val xml = try {
@@ -79,7 +81,7 @@ internal class SafeFeedFetcher(
                     throw FeedFetchException("Could not read the feed response.", exception)
                 }
 
-                return parseFeedDocument(parser, xml, currentUrl.toString())
+                return@withContext parseFeedDocument(parser, xml, currentUrl.toString())
             }
         }
 
@@ -95,7 +97,7 @@ internal class SafeFeedFetcher(
             if (count < 0) break
             output.write(buffer, 0, count)
             if (output.size() > MAX_FEED_BYTES) {
-                throw FeedFetchException("The feed is larger than the 2 MB limit.")
+                throw FeedFetchException("The feed is larger than the 4 MiB limit.")
             }
         }
         return output.toByteArray()
@@ -111,7 +113,7 @@ internal class SafeFeedFetcher(
     }
 
     companion object {
-        private const val MAX_FEED_BYTES = 2 * 1024 * 1024
+        private const val MAX_FEED_BYTES = 4 * 1024 * 1024
         private const val MAX_REDIRECTS = 5
         private const val USER_AGENT = "ScholarlyFeed/1.0"
         private val REDIRECT_CODES = setOf(301, 302, 303, 307, 308)

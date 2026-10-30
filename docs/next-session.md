@@ -1,4 +1,4 @@
-# Next session: Google Drive source sync
+# Next session: in-app web search
 
 ## Current state
 
@@ -20,19 +20,20 @@
 - The app has been run on the Medium Phone API 37 emulator.
 - TalkBack exposes the Focus Mode label/state on focus, but dynamic state-change announcements were not observed.
 - Source management can add the bundled four-feed starter OPML directly; imports use the same per-feed verification and duplicate handling as document imports.
-- Google Drive source-list sync is under implementation. It is designed to be opt-in and manual, stores only OPML in Drive's private app-data folder, and leaves cached articles local.
+- Optional manual Google Drive source-list sync is implemented and merged. It stores only OPML in Drive's private app-data folder, leaves cached articles local, and requires OAuth setup for live account testing.
+- Shift+Tab reverse keyboard focus traversal is implemented across the feed, source management, source discovery, and article detail screens; TalkBack review remains outstanding.
 - The user wants step-by-step guidance and to learn while building.
 
 ## Goal
 
-Finish and validate the first optional source-list sync with Google Drive, then proceed to in-app web search as previously agreed.
+Implement the previously agreed in-app web search flow after the Google Drive sync milestone.
 
 ## Steps
 
-1. Review the current uncommitted Drive sync implementation and run targeted tests, the Android build, instrumentation tests, and lint.
-2. Resolve implementation defects and document setup/conflict behavior. Keep the local-only path working and never propagate deletions.
-3. Configure a Google Cloud OAuth project and matching Android OAuth client before attempting a live Drive account test. Keep credentials and tokens out of the repository.
-4. Once Drive sync is complete, begin the previously deferred in-app web search work.
+1. Define the in-app search experience and its source-discovery provider/API. Search results must remain candidates until the user supplies or chooses a feed URL and the existing verifier accepts it.
+2. Keep provider credentials out of the app binary; evaluate whether search needs a small backend proxy before choosing a service.
+3. Keep the external-search handoff available and retain manual feed URL entry.
+4. Configure Google OAuth separately if the user wants a live Drive account test; setup instructions are in `docs/google-drive-setup.md`.
 
 ## Important
 
@@ -41,5 +42,5 @@ Finish and validate the first optional source-list sync with Google Drive, then 
 - The starter OPML is a URL list, not a feed-content bundle; source verification still runs when imported.
 - Article deduplication is scoped to one feed response; do not combine articles across publishers because source identity and Focus Mode attribution must remain intact.
 - In-app web search is not implemented; external search results require manual feed URL entry and verification.
-- Live Drive authorization and storage behavior remain unverified until Google Cloud OAuth setup is complete.
+- Live Drive authorization and cross-device behavior remain unverified until Google Cloud OAuth setup is complete.
 - The documented minimum SDK is API 26; revisit it before release.
