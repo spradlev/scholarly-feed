@@ -162,6 +162,33 @@ class FeedPersistenceTest {
        }
    }
 
+   @Test
+   fun updatingSourceMetadataAlsoUpdatesCachedArticleAttribution() {
+       runBlocking {
+           val context = ApplicationProvider.getApplicationContext<Context>()
+           val database = Room.inMemoryDatabaseBuilder(context, FeedDatabase::class.java).build()
+           val source = sampleSource()
+           val article = sampleArticle(source)
+           try {
+               val repository = FeedRepository(
+                   database,
+                   SingleFeedFetcher(ParsedFeed("Research Feed", source.feedUrl, listOf(article))),
+               )
+               repository.verifyAndAdd(source)
+
+               repository.updateSourceMetadata(source.copy(title = "Cloud title", level = 4))
+
+               val updatedSource = database.feedSourceDao().observeSources().first().single()
+               val updatedArticle = repository.observeArticles().first().single()
+               assertEquals("Cloud title", updatedSource.title)
+               assertEquals(4, updatedSource.level)
+               assertEquals("Cloud title", updatedArticle.sourceTitle)
+           } finally {
+               database.close()
+           }
+       }
+   }
+
    private fun sampleSource() = FeedSource(
        feedUrl = "https://example.org/feed.xml",
        title = "Research Digest",

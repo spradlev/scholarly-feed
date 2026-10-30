@@ -70,6 +70,7 @@ class FeedSourceManagementScreenTest {
                         importedOpmlSources = importedSources
                         OpmlImportResult(importedSources.size, emptyList())
                     },
+                    onUpdateSourceMetadata = {},
                 )
             }
         }
@@ -157,6 +158,8 @@ class FeedSourceManagementScreenTest {
         composeRule.onNodeWithText("OPML source lists").assertExists()
         composeRule.onNodeWithText("Import OPML").assertExists()
         composeRule.onNodeWithText("Export OPML").assertExists()
+        composeRule.onNodeWithText("Google Drive source sync").assertExists()
+        composeRule.onNodeWithTag("googleDriveSyncButton").assertExists()
         composeRule.onNodeWithText(
             "Add the starter feeds or import an OPML file. Every feed is verified before it is saved. You can also export your verified sources.",
         ).assertExists()

@@ -42,6 +42,13 @@ internal class FeedRepository(
         sourceDao.remove(source.feedUrl)
     }
 
+    suspend fun updateSourceMetadata(source: FeedSource) {
+        database.withTransaction {
+            sourceDao.updateMetadata(source.feedUrl, source.title, source.level)
+            articleDao.updateSourceTitle(source.feedUrl, source.title)
+        }
+    }
+
     suspend fun importOpml(sources: List<OpmlSource>): OpmlImportResult {
         val existingUrls = sourceDao.observeSources().first()
             .map(FeedSource::feedUrl)

@@ -8,7 +8,9 @@ This file distinguishes user-confirmed decisions from proposals and open questio
 - **Development order:** Native Android first using Kotlin; cross-platform options can be considered later.
 - **Initial app:** One native Android application module using Kotlin and Jetpack Compose.
 - **Offline strategy:** Cached articles and saved sources should work offline. AI features may require internet.
-- **Sync options:** Keep local-only storage available and plan an optional cloud-sync choice for a later stage, with providers such as Google Drive, Box, Dropbox, and OneDrive considered. No provider or sync protocol is selected yet.
+- **Sync provider:** Google Drive is the first optional sync provider. Sync is manual and opt-in; local-only use remains supported.
+- **Sync scope and storage:** Sync only the source list as OPML in Drive's private `appDataFolder`, using the `drive.appdata` scope. Cached articles and excerpts remain local.
+- **Sync conflicts:** Merge sources by feed URL. Ask before replacing conflicting source title/level metadata; keep local metadata by default. Never propagate deletions. New remote sources must pass the existing feed verification before they are saved locally or the Drive copy is updated.
 - **GitHub:** The project is maintained at https://github.com/spradlev/scholarly-feed.
 - **Development environment:** Android Studio is installed and running on a Zorin OS Linux development PC.
 - **Learning preference:** The product owner expects beginner-friendly Android Studio guidance and wants to learn as the project develops.
@@ -30,7 +32,7 @@ This file distinguishes user-confirmed decisions from proposals and open questio
 ## Open questions
 
 - Which feed endpoints pass real-world validation? No candidate source URL has been tested against a live publisher feed yet.
-- Which cloud providers and sync model should be supported, and how should conflicts and account permissions work?
+- Which Google Cloud OAuth project and Android signing certificate will be used to configure and live-test Drive authorization? Do not commit credentials or tokens.
 - Which LLM provider will be used behind the provider-neutral proxy?
 - Where will the proxy be hosted?
 - What license should apply before any public release?

@@ -11,7 +11,7 @@ This document records the intended direction and distinguishes it from the curre
 - **Refresh status:** Each source stores the time of its last successful fetch. Article replacement and timestamp updates commit together, so failed fetches preserve both.
 - **OPML:** Source list interchange uses OPML 2.0; `scholarlyFeedLevel` preserves source levels, while standard OPML without it defaults to Level 1. Import must route every URL through existing feed verification before persistence.
 - **Article identity:** Duplicate entries within a feed are removed when they share a GUID or HTTP(S) URL (ignoring URL fragments). Entries without either stable identifier remain distinct; different feeds retain their own source attribution.
-- **Not implemented:** ViewModels and the Librarian.
+- **Not implemented:** ViewModels and the Librarian. Google Drive source-list sync is being integrated; it has not yet been validated against a configured OAuth project or live Drive account.
 
 The Room database upgrades version 1 source-only installations to version 2 without dropping their saved sources. The network safeguards run on-device and are not a substitute for server-side egress controls if the architecture later accepts arbitrary remote URLs.
 
@@ -59,9 +59,13 @@ Focus Mode is a filter, not a ranking algorithm. It should exclude Levels 3 and 
 - The UI distinguishes cached content from a failed refresh.
 - AI requests may require connectivity; explain that clearly and never block ordinary reading on AI availability.
 
-## Future synchronization
+## Google Drive source synchronization
 
-Local-only storage remains a supported option. A later sync feature may let the user opt into a cloud storage provider such as Google Drive, Box, Dropbox, or OneDrive. Provider integrations, account linking, sync scope, conflict handling, and remote data format are not selected or implemented; keep local storage usable without connecting any cloud account.
+The initial optional sync target is Google Drive's private `appDataFolder`, requested with the `drive.appdata` scope. Sync is explicit and manual. The app stores only the source list, encoded as OPML; cached articles and excerpts remain local, and a user can continue using the app without connecting Drive.
+
+Feed URL is the source identity. Sync merges the two lists and never propagates deletions. If a matching URL has different source title or level metadata, ask which metadata to keep; local values are the default. Every source present only in Drive must pass the existing HTTPS feed verification before being stored locally. If verification fails for any remote-only source, retain any successfully verified local additions, report the failures, and leave the Drive file unchanged.
+
+An entry removed from one side is retained from the other side during merge; deletions are not propagated. The app must not persist OAuth access tokens. Disconnect revokes this app's Drive access but does not delete the private Drive copy. OAuth setup and live authorization/sync still require a configured Google Cloud project, enabled Drive API, and an Android OAuth client matching the app's package and signing certificate. Never commit OAuth client secrets or tokens.
 
 ## Librarian grounding
 
