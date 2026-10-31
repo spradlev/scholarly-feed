@@ -88,11 +88,14 @@ class FeedArticleListPerformanceTest {
             composeRule.onAllNodesWithText("Research article 0")
                 .fetchSemanticsNodes().isEmpty(),
         )
-        composeRule.onNodeWithText("Research article ${ARTICLE_COUNT - 1}").assertExists()
+        composeRule.onNodeWithText(
+            "Research article ${ARTICLE_COUNT - 1}",
+            useUnmergedTree = true,
+        ).assertExists()
 
         composeRule.onNodeWithTag("feedArticleList")
             .performScrollToNode(hasText("Research article 0"))
-        composeRule.onNodeWithText("Research article 0").assertExists()
+        composeRule.onNodeWithText("Research article 0", useUnmergedTree = true).assertExists()
     }
 
     private companion object {

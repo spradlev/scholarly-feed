@@ -24,6 +24,9 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Focus Mode control and explicit state.
 - [x] Apply Focus Mode to show only Level 1 research and scientific reporting.
 - [x] Article detail screen using cached feed data, with excerpts distinguished from full text.
+- [x] Keep feed rows concise with clamped titles and summaries, compact source/date metadata, and date-only publication labels; show feed-provided excerpts with attribution in detail.
+- [x] When a feed has no usable excerpt, request a concise description from the linked publisher page; clearly distinguish it from feed content and show loading/unavailable/error states. AI-generated fallback is deferred until a backend hosting target is selected.
+- [x] Add an on-demand in-app publisher text view beside the summary view; keep article-page text uncached, clearly label extraction limitations, and defer AI-generated summaries until a backend is selected.
 - [ ] Native navigation and logical accessibility traversal.
 - [x] Support reverse keyboard focus traversal with Shift+Tab on implemented app screens.
 - [ ] TalkBack smoke test and keyboard/focus review where applicable.
@@ -60,14 +63,17 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Select optional, manual Google Drive source-list sync in the private `appDataFolder`; preserve local-only use and keep article cache local.
 - [ ] Complete OAuth setup and validate cross-device source sync, including verification failures and conflict choices.
 
-**Current limitation:** feed entries and available excerpts persist and can be opened in a detail view; full article text is not retrieved or cached.
+**Current limitation:** feed entries and available excerpts persist. Publisher-page reader text is fetched only on demand and is not cached; extraction can fail or omit content, and AI-generated summaries are not available until a backend is selected.
 
 **Done when:** app restart and offline reading preserve cached sources and articles, and failed refreshes do not erase them.
 
 ## Phase 4 — Accessibility and speech
 
+- [x] Add in-app text-size presets and System/Light/Dark color-scheme settings.
+- [ ] Add a persisted pinch-adjustable reading scale with an accessible settings control; keep content reflowed with vertical scrolling only.
 - [ ] Audit labels, roles, traversal order, focus, touch targets, and status announcements.
 - [ ] Test with TalkBack on Android.
+- [ ] Consider high-contrast and color-vision display options in a later accessibility pass.
 - [ ] Add optional dictation using supported Android speech services/intents.
 - [ ] Add text-to-speech for articles and Librarian answers.
 - [ ] Handle unavailable speech services, permissions, cancellation, and errors.
@@ -94,6 +100,7 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [ ] Review privacy and data-retention behavior.
 - [ ] Test slow/offline/error states and large feeds.
 - [ ] Test with a range of screen sizes and Android versions.
+- [ ] If article images are introduced, show thumbnails and link to the publisher's original article or higher-resolution image.
 - [ ] Document installation and known limitations.
 - [ ] Decide on licensing before public release.
 

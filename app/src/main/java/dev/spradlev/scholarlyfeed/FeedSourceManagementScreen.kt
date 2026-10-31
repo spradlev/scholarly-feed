@@ -71,25 +71,51 @@ private val sourceLevels = listOf(
 
 private data class SourceCandidate(
     val name: String,
+    val feedUrl: String,
     val level: Int,
     val topics: String,
 )
 
 private val sourceCandidates = listOf(
-    SourceCandidate("EurekAlert", 1, "science research health"),
-    SourceCandidate("Phys.org", 1, "science technology environment"),
-    SourceCandidate("ScienceDaily", 1, "science health research"),
-    SourceCandidate("Nature", 1, "research science medicine"),
-    SourceCandidate("arXiv", 1, "research preprints physics mathematics computing"),
-    SourceCandidate("bioRxiv", 1, "research preprints biology"),
-    SourceCandidate("PubMed", 1, "biomedical research medicine health"),
-    SourceCandidate("The Conversation", 2, "academic commentary analysis"),
-    SourceCandidate("Quanta Magazine", 2, "mathematics physics biology science"),
-    SourceCandidate("Arts & Letters Daily", 2, "culture commentary essays"),
-    SourceCandidate("NPR", 3, "national global civic affairs"),
-    SourceCandidate("South Seattle Emerald", 4, "Seattle local civic affairs"),
-    SourceCandidate("KUOW", 4, "Seattle Washington local public affairs"),
-    SourceCandidate("Washington State Standard", 4, "Washington state civic affairs"),
+    SourceCandidate(
+        "ScienceDaily",
+        "https://www.sciencedaily.com/rss/all.xml",
+        1,
+        "science research health",
+    ),
+    SourceCandidate(
+        "Nature",
+        "https://www.nature.com/nature.rss",
+        1,
+        "research science medicine biology",
+    ),
+    SourceCandidate("arXiv: Computer Science", "https://rss.arxiv.org/rss/cs", 1, "research preprints computing"),
+    SourceCandidate("arXiv: AI", "https://rss.arxiv.org/rss/cs.AI", 1, "research preprints artificial intelligence machine learning"),
+    SourceCandidate(
+        "bioRxiv",
+        "https://connect.biorxiv.org/biorxiv_xml.php?subject=all",
+        1,
+        "research preprints biology",
+    ),
+    SourceCandidate(
+        "The Conversation: US",
+        "https://theconversation.com/us/articles.atom",
+        2,
+        "academic commentary analysis",
+    ),
+    SourceCandidate(
+        "Quanta Magazine",
+        "https://www.quantamagazine.org/feed/",
+        2,
+        "mathematics physics biology science",
+    ),
+    SourceCandidate("NPR News", "https://feeds.npr.org/1001/rss.xml", 3, "national global civic affairs"),
+    SourceCandidate(
+        "Washington State Standard",
+        "https://washingtonstatestandard.com/feed/",
+        4,
+        "Washington state civic affairs",
+    ),
 )
 
 @Composable
@@ -101,6 +127,8 @@ internal fun FeedSourceManagementScreen(
     onSearchWeb: (String) -> Boolean,
     onImportOpml: suspend (List<OpmlSource>) -> OpmlImportResult,
     onUpdateSourceMetadata: suspend (FeedSource) -> Unit,
+    driveSettingsOnly: Boolean = false,
+    backToSettings: Boolean = false,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -219,7 +247,10 @@ internal fun FeedSourceManagementScreen(
     fun handleAuthorizationResult(result: AuthorizationResult) {
         if (!result.grantedScopes.contains(DRIVE_APP_DATA_SCOPE.scopeUri)) {
             isSyncingDrive = false
-            driveMessage = "Google Drive access was not granted. Your sources remain on this device."
+            driveMessage =
+                "Google didn't return Drive app-data access. Check that Drive API is enabled and " +
+                    "drive.appdata is allowed in OAuth Data Access for this project. Also verify " +
+                    "this app's package and signing certificate are registered. Your sources remain on this device."
             return
         }
         val accessToken = result.accessToken
@@ -245,7 +276,7 @@ internal fun FeedSourceManagementScreen(
             }
         } else {
             isSyncingDrive = false
-            driveMessage = "Google Drive access was not granted. Your sources remain on this device."
+            driveMessage = "Google Drive authorization was canceled. Your sources remain on this device."
         }
     }
 
@@ -353,6 +384,9 @@ internal fun FeedSourceManagementScreen(
                 } catch (exception: OpmlFormatException) {
                     opmlMessage = exception.message ?: "The selected file is not valid OPML."
                     opmlMessageIsError = true
+                } catch (exception: SQLiteException) {
+                    opmlMessage = "Couldn't save imported sources. Check available device storage and try again."
+                    opmlMessageIsError = true
                 } catch (exception: SecurityException) {
                     opmlMessage = exception.message ?: "Permission to read the selected OPML file was denied."
                     opmlMessageIsError = true
@@ -383,13 +417,88 @@ internal fun FeedSourceManagementScreen(
         }
     }
 
+    if (driveSettingsOnly) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = READABLE_CONTENT_MAX_WIDTH)
+                        .fillMaxWidth()
+                        .fillMaxHeight()
+                        .align(Alignment.TopCenter)
+                        .verticalScroll(rememberScrollState())
+                        .keyboardFocusTraversal()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    TextButton(onClick = onBack) {
+                        Text("Back to settings")
+                    }
+                    Text(
+                        text = "Google Drive sync",
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                    Text(
+                        "Optional manual sync stores only this source list in the app's private Drive data. Cached articles stay on this device. New feeds from Drive are verified before they are added.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Button(
+                        onClick = ::requestDriveSync,
+                        enabled = !isSyncingDrive,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("googleDriveSyncButton"),
+                    ) {
+                        Text(
+                            when {
+                                isSyncingDrive -> "Syncing sources…"
+                                isDriveConnected -> "Sync sources with Google Drive"
+                                else -> "Connect Google Drive and sync"
+                            },
+                        )
+                    }
+                    if (isDriveConnected) {
+                        TextButton(
+                            onClick = ::disconnectGoogleDrive,
+                            enabled = !isSyncingDrive,
+                            modifier = Modifier.testTag("disconnectGoogleDriveButton"),
+                        ) {
+                            Text("Disconnect Google Drive")
+                        }
+                    }
+                    driveMessage?.let { message ->
+                        Text(
+                            text = message,
+                            color = if (
+                                message.contains("could not", ignoreCase = true) ||
+                                message.contains("failed", ignoreCase = true) ||
+                                message.contains("not granted", ignoreCase = true) ||
+                                message.contains("denied", ignoreCase = true) ||
+                                message.contains("invalid", ignoreCase = true) ||
+                                message.contains("not available", ignoreCase = true) ||
+                                message.contains("check", ignoreCase = true) ||
+                                message.contains("canceled", ignoreCase = true)
+                            ) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (driveSettingsOnly) return
+
     if (showingDiscovery) {
         SourceDiscoveryScreen(
             onBack = { showingDiscovery = false },
             onSelect = { candidate ->
                 title = candidate.name
                 selectedLevel = candidate.level
-                feedUrl = ""
+                feedUrl = candidate.feedUrl
                 errorMessage = null
                 showingDiscovery = false
             },
@@ -415,7 +524,7 @@ internal fun FeedSourceManagementScreen(
                     onClick = onBack,
                     modifier = Modifier.testTag("backToFeedButton"),
                 ) {
-                    Text("Back to feed")
+                    Text(if (backToSettings) "Back to settings" else "Back to feed")
                 }
                 Text(
                     text = "Sources",
@@ -449,6 +558,9 @@ internal fun FeedSourceManagementScreen(
                                 opmlMessageIsError = true
                             } catch (exception: OpmlFormatException) {
                                 opmlMessage = exception.message ?: "The starter source list is invalid."
+                                opmlMessageIsError = true
+                            } catch (exception: SQLiteException) {
+                                opmlMessage = "Couldn't save starter sources. Check available device storage and try again."
                                 opmlMessageIsError = true
                             } finally {
                                 isAddingStarterSources = false
@@ -609,52 +721,6 @@ internal fun FeedSourceManagementScreen(
                             onRemove = { onRemoveSource(source) },
                         )
                     }
-                }
-                Text("Google Drive source sync", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Optional manual sync stores only this source list in the app's private Drive data. Cached articles stay on this device. New feeds from Drive are verified before they are added.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Button(
-                    onClick = ::requestDriveSync,
-                    enabled = !isSyncingDrive && !isImportingOpml && !isVerifying,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("googleDriveSyncButton"),
-                ) {
-                    Text(
-                        when {
-                            isSyncingDrive -> "Syncing sources…"
-                            isDriveConnected -> "Sync sources with Google Drive"
-                            else -> "Connect Google Drive and sync"
-                        },
-                    )
-                }
-                if (isDriveConnected) {
-                    TextButton(
-                        onClick = ::disconnectGoogleDrive,
-                        enabled = !isSyncingDrive,
-                        modifier = Modifier.testTag("disconnectGoogleDriveButton"),
-                    ) {
-                        Text("Disconnect Google Drive")
-                    }
-                }
-                driveMessage?.let { message ->
-                    Text(
-                        text = message,
-                        color = if (
-                            message.contains("could not", ignoreCase = true) ||
-                            message.contains("failed", ignoreCase = true) ||
-                            message.contains("not granted", ignoreCase = true) ||
-                            message.contains("denied", ignoreCase = true) ||
-                            message.contains("invalid", ignoreCase = true) ||
-                            message.contains("not available", ignoreCase = true)
-                        ) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.primary
-                        },
-                    )
                 }
             }
         }
@@ -826,7 +892,8 @@ private fun SourceDiscoveryScreen(
                             ) {
                                 Text(candidate.name, style = MaterialTheme.typography.titleMedium)
                                 Text(candidate.topics, style = MaterialTheme.typography.bodyMedium)
-                                Text(
+                                        Text(candidate.feedUrl, style = MaterialTheme.typography.bodySmall)
+                                        Text(
                                     "Candidate · ${level.label}",
                                     style = MaterialTheme.typography.bodySmall,
                                 )

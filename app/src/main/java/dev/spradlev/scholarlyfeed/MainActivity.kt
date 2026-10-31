@@ -22,14 +22,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,13 +39,9 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
@@ -62,13 +53,15 @@ class MainActivity : ComponentActivity() {
             FeedDatabase::class.java,
             "scholarly-feed.db",
         )
-            .addMigrations(FeedDatabase.MIGRATION_1_2, FeedDatabase.MIGRATION_2_3)
+            .addMigrations(
+                FeedDatabase.MIGRATION_1_2,
+                FeedDatabase.MIGRATION_2_3,
+                FeedDatabase.MIGRATION_3_4,
+            )
             .build()
         val fetcher = SafeFeedFetcher()
         setContent {
-            MaterialTheme(typography = ReadableTypography) {
-                ScholarlyFeedScreen(database, fetcher)
-            }
+            ScholarlyFeedScreen(database, fetcher)
         }
     }
 }
@@ -79,10 +72,50 @@ internal fun createWebFeedSearchIntent(query: String): Intent =
     }
 
 @Composable
-internal fun ScholarlyFeedScreen(database: FeedDatabase, fetcher: FeedFetcher) {
+internal fun ScholarlyFeedScreen(
+    database: FeedDatabase,
+    fetcher: FeedFetcher,
+    publisherPageLoader: PublisherPageLoader? = null,
+) {
+    val context = LocalContext.current
+    val publisherPageLoader = remember(publisherPageLoader) {
+        publisherPageLoader ?: SafePublisherPageLoader()
+    }
+    var appPreferences by remember(context) {
+        mutableStateOf(AppPreferences.load(context))
+    }
+
+    MaterialTheme(
+        colorScheme = appColorScheme(appPreferences.colorScheme),
+        typography = readableTypography(appPreferences.textSize.scale),
+    ) {
+        ScholarlyFeedContent(
+            database = database,
+            fetcher = fetcher,
+            appPreferences = appPreferences,
+            publisherPageLoader = publisherPageLoader,
+            onAppPreferencesChange = { updated ->
+                AppPreferences.save(context, updated)
+                appPreferences = updated
+            },
+        )
+    }
+}
+
+@Composable
+private fun ScholarlyFeedContent(
+    database: FeedDatabase,
+    fetcher: FeedFetcher,
+    appPreferences: AppPreferences,
+    publisherPageLoader: PublisherPageLoader,
+    onAppPreferencesChange: (AppPreferences) -> Unit,
+) {
     val context = LocalContext.current
     var focusModeEnabled by rememberSaveable { mutableStateOf(false) }
     var showingSources by rememberSaveable { mutableStateOf(false) }
+    var showingSettings by rememberSaveable { mutableStateOf(false) }
+    var showingDriveSettings by rememberSaveable { mutableStateOf(false) }
+    var sourcesReturnToSettings by rememberSaveable { mutableStateOf(false) }
     var selectedArticle by remember { mutableStateOf<FeedArticle?>(null) }
     val repository = remember(database, fetcher) { FeedRepository(database, fetcher) }
     val sources by repository.observeSources().collectAsState(initial = emptyList())
@@ -97,55 +130,99 @@ internal fun ScholarlyFeedScreen(database: FeedDatabase, fetcher: FeedFetcher) {
     var isRefreshing by remember { mutableStateOf(false) }
     var refreshMessage by remember { mutableStateOf<String?>(null) }
 
-    BackHandler(enabled = showingSources || selectedArticle != null) {
+    BackHandler(
+        enabled = showingSources || showingSettings || showingDriveSettings || selectedArticle != null,
+    ) {
         if (showingSources) {
             showingSources = false
+            showingDriveSettings = false
+            showingSettings = sourcesReturnToSettings
+            sourcesReturnToSettings = false
+        } else if (showingSettings) {
+            showingSettings = false
+        } else if (showingDriveSettings) {
+            showingDriveSettings = false
+            showingSettings = true
         } else {
             selectedArticle = null
         }
     }
 
-    if (showingSources) {
-        FeedSourceManagementScreen(
-            sources = sources,
-            onVerifyAndAdd = { source ->
-                repository.verifyAndAdd(source)
-            },
-            onRemoveSource = { source ->
-                scope.launch { repository.removeSource(source) }
-            },
-            onBack = { showingSources = false },
-            onSearchWeb = { query ->
-                try {
-                    context.startActivity(createWebFeedSearchIntent(query))
-                    true
-                } catch (_: ActivityNotFoundException) {
-                    false
-                }
-            },
-            onImportOpml = { opmlSources ->
-                repository.importOpml(opmlSources)
-            },
-            onUpdateSourceMetadata = { source ->
-                repository.updateSourceMetadata(source)
-            },
-        )
-    } else if (selectedArticle != null) {
-        FeedArticleDetailScreen(
-            article = selectedArticle!!,
-            onBack = { selectedArticle = null },
-            onOpenOriginalArticle = { link ->
-                try {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
-                    true
-                } catch (_: ActivityNotFoundException) {
-                    false
-                }
-            },
-        )
-    } else {
-        Surface(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+        ) {
+            when {
+                showingSources -> FeedSourceManagementScreen(
+                    sources = sources,
+                    onVerifyAndAdd = { source ->
+                        repository.verifyAndAdd(source)
+                    },
+                    onRemoveSource = { source ->
+                        scope.launch { repository.removeSource(source) }
+                    },
+                    onBack = {
+                        showingSources = false
+                        showingDriveSettings = false
+                        showingSettings = sourcesReturnToSettings
+                        sourcesReturnToSettings = false
+                    },
+                    onSearchWeb = { query ->
+                        try {
+                            context.startActivity(createWebFeedSearchIntent(query))
+                            true
+                        } catch (_: ActivityNotFoundException) {
+                            false
+                        }
+                    },
+                    onImportOpml = { opmlSources ->
+                        repository.importOpml(opmlSources)
+                    },
+                    onUpdateSourceMetadata = { source ->
+                        repository.updateSourceMetadata(source)
+                    },
+                    driveSettingsOnly = showingDriveSettings,
+                    backToSettings = sourcesReturnToSettings,
+                )
+                showingSettings -> AppSettingsScreen(
+                    preferences = appPreferences,
+                    onPreferencesChange = onAppPreferencesChange,
+                    onManageSources = {
+                        sourcesReturnToSettings = true
+                        showingDriveSettings = false
+                        showingSettings = false
+                        showingSources = true
+                    },
+                    onGoogleDriveSync = {
+                        sourcesReturnToSettings = true
+                        showingDriveSettings = true
+                        showingSettings = false
+                        showingSources = true
+                    },
+                    onBack = { showingSettings = false },
+                )
+                selectedArticle != null -> FeedArticleDetailScreen(
+                    article = selectedArticle!!,
+                    onBack = { selectedArticle = null },
+                    onOpenOriginalArticle = { link ->
+                        try {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+                            true
+                        } catch (_: ActivityNotFoundException) {
+                            false
+                        }
+                    },
+                    onVote = { userVote ->
+                        val saved = repository.updateArticleVote(selectedArticle!!, userVote)
+                        if (saved) selectedArticle = selectedArticle?.copy(userVote = userVote)
+                        saved
+                    },
+                    publisherPageLoader = publisherPageLoader,
+                )
+                else -> Surface(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxSize()) {
                 LazyColumn(
                     modifier = Modifier
                         .widthIn(max = READABLE_CONTENT_MAX_WIDTH)
@@ -155,7 +232,7 @@ internal fun ScholarlyFeedScreen(database: FeedDatabase, fetcher: FeedFetcher) {
                         .keyboardFocusTraversal()
                         .padding(24.dp)
                         .testTag("feedArticleList"),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
                 ) {
                     item {
                         Row(
@@ -167,17 +244,6 @@ internal fun ScholarlyFeedScreen(database: FeedDatabase, fetcher: FeedFetcher) {
                                 text = "Scholarly Feed",
                                 style = MaterialTheme.typography.headlineMedium,
                             )
-                            IconButton(
-                                onClick = { showingSources = true },
-                                modifier = Modifier.semantics {
-                                    contentDescription = "Settings"
-                                },
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Settings,
-                                    contentDescription = null,
-                                )
-                            }
                         }
                     }
                     if (articles.isEmpty() && sources.isEmpty()) {
@@ -190,40 +256,10 @@ internal fun ScholarlyFeedScreen(database: FeedDatabase, fetcher: FeedFetcher) {
                     } else if (visibleArticles.isNotEmpty()) {
                         item { Text("Latest articles", style = MaterialTheme.typography.titleLarge) }
                     }
-                    item {
-                        Text(
-                            text = "Fetched feed entries and available excerpts are saved on this device.",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = "Focus Mode",
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.clearAndSetSemantics {},
-                            )
-                            Switch(
-                                checked = focusModeEnabled,
-                                onCheckedChange = { focusModeEnabled = it },
-                                modifier = Modifier.semantics {
-                                    contentDescription = "Focus Mode"
-                                    stateDescription = if (focusModeEnabled) "On" else "Off"
-                                    liveRegion = LiveRegionMode.Polite
-                                },
-                            )
-                        }
-                    }
                     if (focusModeEnabled) {
                         item {
                             Text(
-                                text = "Showing Level 1: Research and scientific reporting.",
+                                text = "Research only",
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
@@ -278,8 +314,21 @@ internal fun ScholarlyFeedScreen(database: FeedDatabase, fetcher: FeedFetcher) {
                         }
                     }
                 }
+                }
             }
         }
+        }
+        AppBottomBar(
+            focusModeEnabled = focusModeEnabled,
+            settingsSelected = showingSettings || (showingSources && sourcesReturnToSettings),
+            onSettingsClick = {
+                showingSources = false
+                showingDriveSettings = false
+                showingSettings = true
+                sourcesReturnToSettings = false
+            },
+            onFocusModeClick = { focusModeEnabled = !focusModeEnabled },
+        )
     }
 }
 
@@ -296,17 +345,47 @@ private fun FeedArticleListItem(
             .semantics {
                 contentDescription = "Open article: ${article.title}"
             }
-            .padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(article.title, style = MaterialTheme.typography.titleMedium)
-        Text(article.sourceTitle, style = MaterialTheme.typography.bodySmall)
-        article.publishedAt?.let { publishedAt ->
-            Text("Published $publishedAt", style = MaterialTheme.typography.bodySmall)
+        Text(
+            text = article.title,
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 2,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier = Modifier.testTag("feedArticleTitle"),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = article.sourceTitle,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .testTag("feedArticleSource"),
+            )
+            formatArticleDate(article.publishedAtMillis)?.let { date ->
+                Text(
+                    text = date,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.testTag("feedArticleDate"),
+                )
+            }
         }
-        article.excerpt?.let { excerpt ->
-            Text(excerpt, style = MaterialTheme.typography.bodyMedium)
+        article.excerpt?.let(::cleanArticleText)?.takeIf(String::isNotEmpty)?.let { excerpt ->
+            Text(
+                text = excerpt,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.testTag("feedArticleSummary"),
+            )
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(top = 12.dp))
     }
 }

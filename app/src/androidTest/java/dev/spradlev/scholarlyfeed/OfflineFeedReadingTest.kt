@@ -87,7 +87,11 @@ class OfflineFeedReadingTest {
 
     private fun openDatabase(context: Context, databaseName: String) =
         Room.databaseBuilder(context, FeedDatabase::class.java, databaseName)
-            .addMigrations(FeedDatabase.MIGRATION_1_2, FeedDatabase.MIGRATION_2_3)
+            .addMigrations(
+                FeedDatabase.MIGRATION_1_2,
+                FeedDatabase.MIGRATION_2_3,
+                FeedDatabase.MIGRATION_3_4,
+            )
             .build()
 
     private class NetworkUnavailableFetcher : FeedFetcher {

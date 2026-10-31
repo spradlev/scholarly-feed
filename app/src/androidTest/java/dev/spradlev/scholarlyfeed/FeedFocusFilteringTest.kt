@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.room.Room
@@ -66,8 +66,8 @@ class FeedFocusFilteringTest {
         composeRule.onNodeWithText("Research finding", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithText("Civic report", useUnmergedTree = true).assertExists()
 
-        composeRule.onNodeWithContentDescription("Focus Mode").performClick()
-        composeRule.onNodeWithText("Showing Level 1: Research and scientific reporting.").assertExists()
+        composeRule.onNodeWithTag("bottomFocusModeButton").performClick()
+        composeRule.onNodeWithText("Research only").assertExists()
         composeRule.onNodeWithText("Research finding", useUnmergedTree = true).assertExists()
         assertTrue(
             composeRule.onAllNodesWithText("Civic report", useUnmergedTree = true)
@@ -75,7 +75,7 @@ class FeedFocusFilteringTest {
         )
         assertEquals(0, fetcher.fetchCount)
 
-        composeRule.onNodeWithContentDescription("Focus Mode").performClick()
+        composeRule.onNodeWithTag("bottomFocusModeButton").performClick()
         composeRule.onNodeWithText("Research finding", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithText("Civic report", useUnmergedTree = true).assertExists()
         assertEquals(0, fetcher.fetchCount)
@@ -95,7 +95,7 @@ class FeedFocusFilteringTest {
             }
         }
 
-        composeRule.onNodeWithContentDescription("Focus Mode").performClick()
+        composeRule.onNodeWithTag("bottomFocusModeButton").performClick()
         composeRule.onNodeWithText(
             "No Level 1 articles yet. Turn off Focus Mode to see all sources.",
         ).assertExists()

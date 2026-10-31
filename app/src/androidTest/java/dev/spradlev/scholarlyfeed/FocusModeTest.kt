@@ -1,14 +1,12 @@
 package dev.spradlev.scholarlyfeed
 
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.assertIsOff
-import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -26,26 +24,26 @@ class FocusModeTest {
         composeRule.onNodeWithText("Your feed is empty. Add sources to set up your reading list.")
             .assertExists()
 
-        val focusMode = composeRule.onNodeWithContentDescription("Focus Mode")
+        val focusMode = composeRule.onNodeWithTag("bottomFocusModeButton")
         focusMode
-            .assertIsOff()
+            .assertIsNotSelected()
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Off"))
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
             .performClick()
-            .assertIsOn()
+            .assertIsSelected()
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "On"))
             .performClick()
-            .assertIsOff()
+            .assertIsNotSelected()
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Off"))
     }
 
     @Test
-    fun settingsButtonOpensSourceManagement() {
-        composeRule.onNodeWithContentDescription("Settings").performClick()
+    fun settingsButtonOpensSettingsAndSourceManagement() {
+        composeRule.onNodeWithTag("bottomSettingsButton").performClick()
+        composeRule.onNodeWithText("Accessibility & display").assertExists()
+        composeRule.onNodeWithTag("manageSourcesButton").performClick()
         composeRule.onNodeWithText("Sources").assertExists()
 
-        composeRule.onNodeWithText("Back to feed").performClick()
-        composeRule.onNodeWithContentDescription("Settings").assertExists()
+        composeRule.onNodeWithText("Back to settings").performClick()
+        composeRule.onNodeWithText("Accessibility & display").assertExists()
     }
 }

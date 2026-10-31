@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.ColumnInfo
 import androidx.room.Insert
 import androidx.room.Index
 import androidx.room.OnConflictStrategy
@@ -58,6 +59,8 @@ internal data class CachedFeedArticle(
     val excerpt: String?,
     val sourceTitle: String,
     val sortOrder: Int,
+    @ColumnInfo(defaultValue = "0")
+    val userVote: Int = 0,
 ) {
     fun toFeedArticle() = FeedArticle(
         id = articleId,
@@ -68,6 +71,7 @@ internal data class CachedFeedArticle(
         excerpt = excerpt,
         sourceUrl = sourceUrl,
         sourceTitle = sourceTitle,
+        userVote = userVote,
     )
 
     companion object {
@@ -81,6 +85,7 @@ internal data class CachedFeedArticle(
             excerpt = article.excerpt,
             sourceTitle = article.sourceTitle,
             sortOrder = sortOrder,
+            userVote = article.userVote,
         )
     }
 }
@@ -106,19 +111,32 @@ internal interface FeedArticleDao {
     @Query("UPDATE feed_articles SET sourceTitle = :sourceTitle WHERE sourceUrl = :sourceUrl")
     suspend fun updateSourceTitle(sourceUrl: String, sourceTitle: String)
 
+    @Query(
+        "UPDATE feed_articles SET userVote = :userVote WHERE sourceUrl = :sourceUrl AND articleId = :articleId",
+    )
+    suspend fun updateUserVote(sourceUrl: String, articleId: String, userVote: Int): Int
+
+    @Query("SELECT * FROM feed_articles WHERE sourceUrl = :sourceUrl")
+    suspend fun getForSource(sourceUrl: String): List<CachedFeedArticle>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(articles: List<CachedFeedArticle>)
 
     @Transaction
     suspend fun replaceForSource(sourceUrl: String, articles: List<CachedFeedArticle>) {
+        val existingVotes = getForSource(sourceUrl).associate { it.articleId to it.userVote }
         removeForSource(sourceUrl)
-        if (articles.isNotEmpty()) insertAll(articles)
+        if (articles.isNotEmpty()) {
+            insertAll(articles.map { article ->
+                article.copy(userVote = existingVotes[article.articleId] ?: 0)
+            })
+        }
     }
 }
 
 @Database(
     entities = [FeedSource::class, CachedFeedArticle::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 internal abstract class FeedDatabase : RoomDatabase() {
@@ -157,6 +175,14 @@ internal abstract class FeedDatabase : RoomDatabase() {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 db.execSQL(
                     "ALTER TABLE `feed_sources` ADD COLUMN `lastSuccessfulRefreshAtMillis` INTEGER",
+                )
+            }
+        }
+
+        val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `feed_articles` ADD COLUMN `userVote` INTEGER NOT NULL DEFAULT 0",
                 )
             }
         }

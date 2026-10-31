@@ -11,7 +11,7 @@
 
 These are source candidates, not confirmed feed endpoints unless listed in the validation ledger below. The app lets a user enter an exact URL and adds it only after an HTTPS request returns a parseable RSS/Atom feed with a title. Some outlets primarily publish press releases or summaries; link to the underlying paper or DOI when available and make the source type clear.
 
-The app's built-in Discovery directory contains publisher names and topic keywords from this candidate list. Searching it is local-only; it does not claim that a publisher has a supported feed. Discovery can hand the search phrase to the device's web search app with “RSS feed” appended. Search results are not imported or trusted automatically: the user must enter and verify an exact HTTPS feed URL.
+The app's built-in Discovery directory contains concise publisher names, topic keywords, and a suggested feed URL for each listed entry. These suggestions are limited to endpoints that returned feed-shaped responses in the latest live check; they remain candidates, not app-verified sources. Selecting one fills both the title and URL fields. The user must still verify the exact HTTPS URL in the app before it is saved. Discovery can also hand the search phrase to the device's web search app with “RSS feed” appended; search results are not imported or trusted automatically.
 
 ## Validation requirements
 
@@ -62,3 +62,5 @@ The starter OPML file is [`starter-sources.opml`](starter-sources.opml). Its six
 | Washington State Standard | 4 | Washington State Standard | `https://washingtonstatestandard.com/feed/` | 200, `application/rss+xml`; RSS | Linked entries and publication dates parsed. Feed descriptions/content are publisher-provided; the app does not fetch article pages. |
 
 These are a tested snapshot, not a guarantee of future uptime or publisher policy. Import still re-verifies every URL before saving it. The arXiv Physics and astro-ph endpoints currently return valid but empty feeds and are intentionally absent until they contain entries; other candidate endpoints remain unverified and absent from the starter OPML.
+
+Discovery's suggested URLs are a separate convenience list from the starter set. Nature (`https://www.nature.com/nature.rss`), Quanta Magazine (`https://www.quantamagazine.org/feed/`), and bioRxiv (`https://connect.biorxiv.org/biorxiv_xml.php?subject=all`) returned feed-shaped responses during a live HTTP/XML check on 2026-10-30, as did the six starter endpoints above. These three suggestions have not yet been validated through the Android app's `SafeFeedFetcher`; the app verifies them when a user chooses Verify and add. Other candidate outlets, including APA, Psychology Today, Oxford University Press, and BMJ Journals, are not presented with guessed feed URLs.

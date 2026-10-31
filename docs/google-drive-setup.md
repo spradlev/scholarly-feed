@@ -14,8 +14,10 @@ Google Drive sync is optional and manual. It stores only the source list as OPML
    ```
 
    Use the SHA-1 under the `debug` variant. A release build signed with a different certificate needs its own matching Android OAuth client configuration.
-5. Install the debug build on a device or emulator where the test account is available, open **Sources**, and choose **Connect Google Drive and sync**. Grant the requested app-data access.
+5. Install the debug build on a device or emulator where the test account is available, open **Settings → Google Drive sync**, and choose **Connect Google Drive and sync**. Grant the requested app-data access.
 6. To verify the private copy, sync from another installation using the same account. Files in `appDataFolder` are hidden from the normal Drive file browser; a successful re-read through the app is the expected check.
+
+If Google does not return the `drive.appdata` grant, confirm the Google Drive API is enabled, `drive.appdata` is listed in the project's OAuth Data Access configuration, the testing account is an allowed test user, and the Android OAuth client matches the installed package name and signing-certificate SHA-1. Canceling the consent prompt leaves local sources unchanged.
 
 The app's Android OAuth configuration is associated with its package name and signing certificate. Do not add OAuth client secrets, access tokens, or personal account data to the repository. This document does not contain project-specific client identifiers.
 

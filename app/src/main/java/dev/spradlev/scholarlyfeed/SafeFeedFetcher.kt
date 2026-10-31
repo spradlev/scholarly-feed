@@ -234,7 +234,7 @@ private fun parsePublishedAt(value: String?): Long? {
     }
 }
 
-private object PublicAddressDns : Dns {
+internal object PublicAddressDns : Dns {
     override fun lookup(hostname: String): List<InetAddress> {
         val addresses = try {
             Dns.SYSTEM.lookup(hostname)

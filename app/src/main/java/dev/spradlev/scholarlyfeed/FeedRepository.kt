@@ -49,6 +49,11 @@ internal class FeedRepository(
         }
     }
 
+    suspend fun updateArticleVote(article: FeedArticle, userVote: Int): Boolean {
+        require(userVote in -1..1) { "Article vote must be -1, 0, or 1." }
+        return articleDao.updateUserVote(article.sourceUrl, article.id, userVote) == 1
+    }
+
     suspend fun importOpml(sources: List<OpmlSource>): OpmlImportResult {
         val existingUrls = sourceDao.observeSources().first()
             .map(FeedSource::feedUrl)

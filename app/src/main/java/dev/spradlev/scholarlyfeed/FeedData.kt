@@ -9,6 +9,7 @@ internal data class FeedArticle(
     val excerpt: String?,
     val sourceUrl: String,
     val sourceTitle: String,
+    val userVote: Int = 0,
 )
 
 internal data class ParsedFeed(

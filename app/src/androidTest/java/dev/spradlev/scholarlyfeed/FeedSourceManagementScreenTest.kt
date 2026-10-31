@@ -1,5 +1,6 @@
 package dev.spradlev.scholarlyfeed
 
+import android.database.sqlite.SQLiteException
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -29,6 +30,7 @@ class FeedSourceManagementScreenTest {
 
     private val sources = mutableStateListOf<FeedSource>()
     private var failVerification = false
+    private var failImport = false
     private var failWebSearch = false
     private var searchedQuery: String? = null
     private var importedOpmlSources: List<OpmlSource> = emptyList()
@@ -37,6 +39,7 @@ class FeedSourceManagementScreenTest {
     fun setUp() {
         sources.clear()
         failVerification = false
+        failImport = false
         failWebSearch = false
         searchedQuery = null
         importedOpmlSources = emptyList()
@@ -70,6 +73,7 @@ class FeedSourceManagementScreenTest {
                         !failWebSearch
                     },
                     onImportOpml = { importedSources ->
+                        if (failImport) throw SQLiteException("database is full")
                         importedOpmlSources = importedSources
                         OpmlImportResult(importedSources.size, emptyList())
                     },
@@ -128,15 +132,17 @@ class FeedSourceManagementScreenTest {
         composeRule.onNodeWithText(
             "Search this starter directory or search the web for feed links. Directory entries are candidates, not verified feeds.",
         ).assertExists()
-        composeRule.onNodeWithTag("sourceDiscoverySearch").performTextInput("biology")
+        composeRule.onNodeWithTag("sourceDiscoverySearch").performTextInput("preprints")
         composeRule.onNodeWithTag("searchWebButton").performClick()
-        assertEquals("biology RSS feed", searchedQuery)
+        assertEquals("preprints RSS feed", searchedQuery)
 
         composeRule.onNodeWithText("bioRxiv").assertExists()
         assertTrue(composeRule.onAllNodesWithText("Nature").fetchSemanticsNodes().isEmpty())
         composeRule.onNodeWithTag("selectCandidate-bioRxiv").performClick()
 
         composeRule.onNodeWithTag("sourceTitleInput").assertTextContains("bioRxiv")
+        composeRule.onNodeWithTag("sourceUrlInput")
+            .assertTextContains("https://connect.biorxiv.org/biorxiv_xml.php?subject=all")
         composeRule.onNodeWithTag("sourceLevelSelector").assertTextContains(
             "Level 1: Research and scientific reporting",
         )
@@ -161,8 +167,7 @@ class FeedSourceManagementScreenTest {
         composeRule.onNodeWithText("OPML source lists").assertExists()
         composeRule.onNodeWithText("Import OPML").assertExists()
         composeRule.onNodeWithText("Export OPML").assertExists()
-        composeRule.onNodeWithText("Google Drive source sync").assertExists()
-        composeRule.onNodeWithTag("googleDriveSyncButton").assertExists()
+        assertTrue(composeRule.onAllNodesWithText("Google Drive sync").fetchSemanticsNodes().isEmpty())
         composeRule.onNodeWithText(
             "Add the starter feeds or import an OPML file. Every feed is verified before it is saved. You can also export your verified sources.",
         ).assertExists()
@@ -207,5 +212,15 @@ class FeedSourceManagementScreenTest {
             ),
             importedOpmlSources,
         )
+    }
+
+    @Test
+    fun starterImportShowsDatabaseFailureInsteadOfLeavingTheScreen() {
+        failImport = true
+        composeRule.onNodeWithTag("addStarterSourcesButton").performScrollTo().performClick()
+
+        composeRule.onNodeWithText(
+            "Couldn't save starter sources. Check available device storage and try again.",
+        ).assertExists()
     }
 }

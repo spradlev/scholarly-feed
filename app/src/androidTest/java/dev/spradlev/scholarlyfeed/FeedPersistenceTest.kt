@@ -22,7 +22,11 @@ class FeedPersistenceTest {
            val source = sampleSource()
            val article = sampleArticle(source)
            val firstDatabase = Room.databaseBuilder(context, FeedDatabase::class.java, databaseName)
-               .addMigrations(FeedDatabase.MIGRATION_1_2, FeedDatabase.MIGRATION_2_3)
+               .addMigrations(
+                   FeedDatabase.MIGRATION_1_2,
+                   FeedDatabase.MIGRATION_2_3,
+                   FeedDatabase.MIGRATION_3_4,
+               )
                .build()
            try {
                FeedRepository(
@@ -35,7 +39,11 @@ class FeedPersistenceTest {
            }
 
            val reopenedDatabase = Room.databaseBuilder(context, FeedDatabase::class.java, databaseName)
-               .addMigrations(FeedDatabase.MIGRATION_1_2, FeedDatabase.MIGRATION_2_3)
+               .addMigrations(
+                   FeedDatabase.MIGRATION_1_2,
+                   FeedDatabase.MIGRATION_2_3,
+                   FeedDatabase.MIGRATION_3_4,
+               )
                .build()
            try {
                val dao = reopenedDatabase.feedSourceDao()
@@ -98,7 +106,11 @@ class FeedPersistenceTest {
        }
 
        val migratedDatabase = Room.databaseBuilder(context, FeedDatabase::class.java, databaseName)
-           .addMigrations(FeedDatabase.MIGRATION_1_2, FeedDatabase.MIGRATION_2_3)
+           .addMigrations(
+               FeedDatabase.MIGRATION_1_2,
+               FeedDatabase.MIGRATION_2_3,
+               FeedDatabase.MIGRATION_3_4,
+           )
            .build()
        runBlocking {
            try {
@@ -130,6 +142,7 @@ class FeedPersistenceTest {
            try {
                val repository = FeedRepository(database, fetcher) { currentTimeMillis }
                repository.verifyAndAdd(source)
+               repository.updateArticleVote(oldArticle, 1)
                assertEquals(
                    1000L,
                    database.feedSourceDao().observeSources().first().single().lastSuccessfulRefreshAtMillis,
@@ -139,19 +152,19 @@ class FeedPersistenceTest {
                fetcher.failure = true
                val failedRefresh = repository.refreshSources(listOf(source))
                assertEquals(1, failedRefresh.errors.size)
-               assertEquals(listOf(oldArticle), repository.observeArticles().first())
+               assertEquals(listOf(oldArticle.copy(userVote = 1)), repository.observeArticles().first())
                assertEquals(
                    1000L,
                    database.feedSourceDao().observeSources().first().single().lastSuccessfulRefreshAtMillis,
                )
 
-               val newArticle = oldArticle.copy(id = "new", title = "New finding")
+               val newArticle = oldArticle.copy(title = "Updated finding")
                currentTimeMillis = 3000L
                fetcher.failure = false
                fetcher.feed = ParsedFeed("Research Feed", source.feedUrl, listOf(newArticle))
                val successfulRefresh = repository.refreshSources(listOf(source))
                assertTrue(successfulRefresh.errors.isEmpty())
-               assertEquals(listOf(newArticle), repository.observeArticles().first())
+               assertEquals(listOf(newArticle.copy(userVote = 1)), repository.observeArticles().first())
                assertEquals(
                    3000L,
                    database.feedSourceDao().observeSources().first().single().lastSuccessfulRefreshAtMillis,

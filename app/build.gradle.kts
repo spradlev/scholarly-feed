@@ -38,6 +38,7 @@ dependencies {
     implementation("androidx.room:room-ktx:$roomVersion")
     implementation("com.google.android.gms:play-services-auth:22.0.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("org.jsoup:jsoup:1.21.1")
     implementation("com.prof18.rssparser:rssparser:6.1.8")
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
