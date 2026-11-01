@@ -4,7 +4,10 @@ import android.content.Context
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -51,16 +54,19 @@ class AppSettingsScreenTest {
         composeRule.onNodeWithText("Accessibility & display").assertExists()
 
         composeRule.onNodeWithTag("fontSizeOption_LARGER").performClick()
-        composeRule.onNodeWithTag("colorSchemeOption_DARK").performClick()
+        composeRule.onNodeWithTag("readingScaleSlider")
+            .performSemanticsAction(SemanticsActions.SetProgress) { setProgress -> setProgress(1.5f) }
+        composeRule.onNodeWithTag("colorSchemeOption_DARK").performScrollTo().performClick()
         assertEquals(AppTextSize.LARGER, AppPreferences.load(context).textSize)
+        assertEquals(1.5f, AppPreferences.load(context).readingScale)
         assertEquals(AppColorScheme.DARK, AppPreferences.load(context).colorScheme)
 
-        composeRule.onNodeWithTag("manageSourcesButton").performClick()
+        composeRule.onNodeWithTag("manageSourcesButton").performScrollTo().performClick()
         composeRule.onNodeWithText("Sources").assertExists()
         composeRule.onNodeWithText("Back to settings").performClick()
         composeRule.onNodeWithText("Accessibility & display").assertExists()
 
-        composeRule.onNodeWithTag("googleDriveSettingsButton").performClick()
+        composeRule.onNodeWithTag("googleDriveSettingsButton").performScrollTo().performClick()
         composeRule.onNodeWithText("Connect Google Drive and sync").assertExists()
         composeRule.onNodeWithText("Back to settings").performClick()
         composeRule.onNodeWithText("Accessibility & display").assertExists()

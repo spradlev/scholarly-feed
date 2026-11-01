@@ -1,14 +1,16 @@
 package dev.spradlev.scholarlyfeed
 
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsProperties.ContentDescription
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.assertIsNotSelected
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
@@ -26,24 +28,43 @@ class FocusModeTest {
 
         val focusMode = composeRule.onNodeWithTag("bottomFocusModeButton")
         focusMode
-            .assertIsNotSelected()
+            .assert(SemanticsMatcher.expectValue(ContentDescription, listOf("Focus mode")))
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Off"))
+            .performMouseInput { moveTo(center) }
+        composeRule.waitUntil(timeoutMillis = 2_000) {
+            composeRule.onAllNodesWithText("Focus mode: Off")
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+        focusMode
             .performClick()
-            .assertIsSelected()
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "On"))
             .performClick()
-            .assertIsNotSelected()
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Off"))
     }
 
     @Test
     fun settingsButtonOpensSettingsAndSourceManagement() {
-        composeRule.onNodeWithTag("bottomSettingsButton").performClick()
+        val settings = composeRule.onNodeWithTag("bottomSettingsButton")
+        settings.assert(SemanticsMatcher.expectValue(ContentDescription, listOf("Settings")))
+            .performClick()
         composeRule.onNodeWithText("Accessibility & display").assertExists()
-        composeRule.onNodeWithTag("manageSourcesButton").performClick()
+        composeRule.onNodeWithTag("manageSourcesButton").performScrollTo().performClick()
         composeRule.onNodeWithText("Sources").assertExists()
 
         composeRule.onNodeWithText("Back to settings").performClick()
         composeRule.onNodeWithText("Accessibility & display").assertExists()
+    }
+
+    @Test
+    fun homeButtonReturnsFromSettingsToFeed() {
+        composeRule.onNodeWithTag("bottomSettingsButton").performClick()
+        composeRule.onNodeWithText("Accessibility & display").assertExists()
+
+        composeRule.onNodeWithTag("bottomHomeButton")
+            .assert(SemanticsMatcher.expectValue(ContentDescription, listOf("Home")))
+            .performClick()
+
+        composeRule.onNodeWithText("Scholarly Feed").assertExists()
     }
 }

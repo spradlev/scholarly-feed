@@ -24,7 +24,10 @@ Accessibility is a product requirement, not a visual polish pass. Compose does n
 - [ ] Screen-reader focus order matches the visual/logical order.
 - [ ] Focus Mode exposes its name and on/off state.
 - [ ] Navigation destinations and current screen are understandable.
+- [ ] Opening an article, including a similar article, returns to the top and announces its title.
 - [ ] No keyboard trap; Back and Escape-like navigation behavior is predictable where applicable.
+- [ ] With touch exploration off, Up/Down keys and mouse-wheel scrolling move long feed and article content.
+- [ ] Navigation controls show their names on hover and keyboard focus; Focus Mode also shows its current state.
 - [ ] Dialogs, menus, and loading states return focus appropriately.
 
 ### Feed and article reading
@@ -34,6 +37,8 @@ Accessibility is a product requirement, not a visual polish pass. Compose does n
 - [ ] Links/actions are separately reachable and named.
 - [ ] Excerpts are not represented as full article text.
 - [ ] Long content does not require a custom gesture to scroll.
+- [ ] Moving TalkBack focus through long article text brings the focused paragraph into the visible reading area.
+- [ ] Article text size can be changed with an accessible settings control; pinch zoom is optional and does not replace single-finger scrolling.
 
 ### Status and errors
 - [ ] Refresh success/failure is announced or otherwise discoverable.

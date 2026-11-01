@@ -3,6 +3,7 @@ package dev.spradlev.scholarlyfeed
 import androidx.compose.material3.Typography
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.TextStyle
 
 internal val ReadableTypography = readableTypography(1f)
 
@@ -70,5 +71,11 @@ internal fun readableTypography(scale: Float) = Typography().let { defaults ->
         ),
     )
 }
+
+internal fun scaleReadingStyle(style: TextStyle, scale: Float): TextStyle =
+    style.copy(
+        fontSize = scaleTextUnit(style.fontSize, scale),
+        lineHeight = scaleTextUnit(style.lineHeight, scale),
+    )
 
 internal val READABLE_CONTENT_MAX_WIDTH = 600.dp

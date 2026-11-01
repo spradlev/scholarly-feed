@@ -2,6 +2,12 @@
 
 Priorities are deliberately sequential. A later phase should not begin until the earlier phase has a reproducible build and a clear test result.
 
+## Milestone — usable product
+
+As of 2026-11-01, the app has a usable Android build installed on two physical devices and is entering a focused period of usability and accessibility testing. Core feed reading, accessible article views, source management, Focus Mode, and manual installation are available for hands-on evaluation.
+
+This is a product milestone, not a declaration that development is complete. TalkBack and physical-device behavior still need review, and the remaining work below—including Drive cross-device validation, search integration, the Virtual Librarian, and release hardening—remains on the roadmap.
+
 ## Phase 0 — Development environment and repository
 
 - [ ] Confirm Android Studio version and installed SDK/platform-tools.
@@ -27,6 +33,7 @@ Priorities are deliberately sequential. A later phase should not begin until the
 - [x] Keep feed rows concise with clamped titles and summaries, compact source/date metadata, and date-only publication labels; show feed-provided excerpts with attribution in detail.
 - [x] When a feed has no usable excerpt, request a concise description from the linked publisher page; clearly distinguish it from feed content and show loading/unavailable/error states. AI-generated fallback is deferred until a backend hosting target is selected.
 - [x] Add an on-demand in-app publisher text view beside the summary view; keep article-page text uncached, clearly label extraction limitations, and defer AI-generated summaries until a backend is selected.
+- [x] Expand feed previews to five lines; add up to four locally matched related articles below article details; provide a centered Home action alongside Settings and Focus Mode.
 - [ ] Native navigation and logical accessibility traversal.
 - [x] Support reverse keyboard focus traversal with Shift+Tab on implemented app screens.
 - [ ] TalkBack smoke test and keyboard/focus review where applicable.
@@ -70,9 +77,10 @@ Priorities are deliberately sequential. A later phase should not begin until the
 ## Phase 4 — Accessibility and speech
 
 - [x] Add in-app text-size presets and System/Light/Dark color-scheme settings.
-- [ ] Add a persisted pinch-adjustable reading scale with an accessible settings control; keep content reflowed with vertical scrolling only.
+- [x] Add a persisted pinch-adjustable reading scale with an accessible settings control; keep content reflowed with vertical scrolling only.
 - [ ] Audit labels, roles, traversal order, focus, touch targets, and status announcements.
 - [ ] Test with TalkBack on Android.
+- [ ] Confirm TalkBack focus through long article text scrolls each focused paragraph into view on a physical phone and tablet.
 - [ ] Consider high-contrast and color-vision display options in a later accessibility pass.
 - [ ] Add optional dictation using supported Android speech services/intents.
 - [ ] Add text-to-speech for articles and Librarian answers.

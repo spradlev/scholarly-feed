@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,6 +31,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -203,36 +205,61 @@ private fun ScholarlyFeedContent(
                     },
                     onBack = { showingSettings = false },
                 )
-                selectedArticle != null -> FeedArticleDetailScreen(
-                    article = selectedArticle!!,
-                    onBack = { selectedArticle = null },
-                    onOpenOriginalArticle = { link ->
-                        try {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
-                            true
-                        } catch (_: ActivityNotFoundException) {
-                            false
-                        }
-                    },
-                    onVote = { userVote ->
-                        val saved = repository.updateArticleVote(selectedArticle!!, userVote)
-                        if (saved) selectedArticle = selectedArticle?.copy(userVote = userVote)
-                        saved
-                    },
-                    publisherPageLoader = publisherPageLoader,
-                )
+                selectedArticle != null -> key(
+                    selectedArticle!!.sourceUrl,
+                    selectedArticle!!.id,
+                ) {
+                    FeedArticleDetailScreen(
+                        article = selectedArticle!!,
+                        onBack = { selectedArticle = null },
+                        onOpenOriginalArticle = { link ->
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+                                true
+                            } catch (_: ActivityNotFoundException) {
+                                false
+                            }
+                        },
+                        onVote = { userVote ->
+                            val saved = repository.updateArticleVote(selectedArticle!!, userVote)
+                            if (saved) selectedArticle = selectedArticle?.copy(userVote = userVote)
+                            saved
+                        },
+                        publisherPageLoader = publisherPageLoader,
+                        relatedArticles = recommendSimilarArticles(
+                            selectedArticle!!,
+                            visibleArticles,
+                        ),
+                        onOpenRelatedArticle = { related ->
+                            selectedArticle = related
+                        },
+                        readingScale = appPreferences.readingScale,
+                        onReadingScaleChange = { scale ->
+                            onAppPreferencesChange(
+                                appPreferences.copy(
+                                    readingScale = scale.coerceIn(
+                                        MIN_READING_SCALE,
+                                        MAX_READING_SCALE,
+                                    ),
+                                ),
+                            )
+                        },
+                    )
+                }
                 else -> Surface(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.fillMaxSize()) {
+                val feedListState = rememberLazyListState()
                 LazyColumn(
                     modifier = Modifier
                         .widthIn(max = READABLE_CONTENT_MAX_WIDTH)
                         .fillMaxWidth()
                         .fillMaxHeight()
                         .align(Alignment.TopCenter)
-                        .keyboardFocusTraversal()
+                        .keyboardFocusTraversal(feedListState)
                         .padding(24.dp)
                         .testTag("feedArticleList"),
                     verticalArrangement = Arrangement.spacedBy(0.dp),
+                    state = feedListState,
                 ) {
                     item {
                         Row(
@@ -318,23 +345,39 @@ private fun ScholarlyFeedContent(
             }
         }
         }
-        AppBottomBar(
-            focusModeEnabled = focusModeEnabled,
-            settingsSelected = showingSettings || (showingSources && sourcesReturnToSettings),
-            onSettingsClick = {
-                showingSources = false
-                showingDriveSettings = false
-                showingSettings = true
-                sourcesReturnToSettings = false
-            },
-            onFocusModeClick = { focusModeEnabled = !focusModeEnabled },
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            AppBottomBar(
+                focusModeEnabled = focusModeEnabled,
+                settingsSelected = showingSettings || (showingSources && sourcesReturnToSettings),
+                homeSelected = !showingSources && !showingSettings && selectedArticle == null,
+                onSettingsClick = {
+                    showingSources = false
+                    showingDriveSettings = false
+                    showingSettings = true
+                    sourcesReturnToSettings = false
+                },
+                onHomeClick = {
+                    showingSources = false
+                    showingDriveSettings = false
+                    showingSettings = false
+                    sourcesReturnToSettings = false
+                    selectedArticle = null
+                },
+                onFocusModeClick = { focusModeEnabled = !focusModeEnabled },
+            )
+        }
     }
 }
 
 @Composable
-private fun FeedArticleListItem(
+internal fun FeedArticleListItem(
     article: FeedArticle,
+    testTag: String? = null,
     onClick: () -> Unit,
 ) {
     Column(
@@ -345,6 +388,7 @@ private fun FeedArticleListItem(
             .semantics {
                 contentDescription = "Open article: ${article.title}"
             }
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
             .padding(vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -381,7 +425,7 @@ private fun FeedArticleListItem(
             Text(
                 text = excerpt,
                 style = MaterialTheme.typography.bodyMedium,
-                maxLines = 2,
+                maxLines = 5,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 modifier = Modifier.testTag("feedArticleSummary"),
             )

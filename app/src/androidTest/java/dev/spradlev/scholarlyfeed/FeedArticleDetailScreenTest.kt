@@ -2,12 +2,26 @@ package dev.spradlev.scholarlyfeed
 
 import android.content.Context
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -27,11 +41,13 @@ class FeedArticleDetailScreenTest {
     val composeRule = createComposeRule()
 
     private lateinit var database: FeedDatabase
+    private lateinit var context: Context
     private val fetcher = CountingFeedFetcher()
 
     @Before
     fun setUp() {
-        val context = ApplicationProvider.getApplicationContext<Context>()
+        context = ApplicationProvider.getApplicationContext()
+        AppPreferences.save(context, AppPreferences())
         database = Room.inMemoryDatabaseBuilder(context, FeedDatabase::class.java).build()
         runBlocking {
             val source = FeedSource(
@@ -59,6 +75,7 @@ class FeedArticleDetailScreenTest {
     @After
     fun tearDown() {
         database.close()
+        AppPreferences.save(context, AppPreferences())
     }
 
     @Test
@@ -67,6 +84,12 @@ class FeedArticleDetailScreenTest {
             MaterialTheme {
                 ScholarlyFeedScreen(database, fetcher)
             }
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithContentDescription(
+                "Open article: A research finding",
+                useUnmergedTree = true,
+            ).fetchSemanticsNodes().isNotEmpty()
         }
 
         composeRule.onNodeWithTag("feedArticleSummary", useUnmergedTree = true)
@@ -163,6 +186,12 @@ class FeedArticleDetailScreenTest {
                 ScholarlyFeedScreen(database, fetcher, pageLoader)
             }
         }
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithContentDescription(
+                "Open article: A research finding",
+                useUnmergedTree = true,
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithContentDescription(
             "Open article: A research finding",
             useUnmergedTree = true,
@@ -175,6 +204,199 @@ class FeedArticleDetailScreenTest {
         composeRule.onNodeWithText("The complete readable publisher article.").assertExists()
         composeRule.waitUntil(timeoutMillis = 5_000) { loadCount == 1 }
         assertEquals(1, loadCount)
+    }
+
+    @Test
+    fun similarArticleCardsOpenTheSelectedArticle() {
+        val relatedArticle = FeedArticle(
+            id = "article-2",
+            title = "Research finding about health outcomes",
+            link = "https://example.org/article-2",
+            publishedAt = "2026-10-29T12:00:00Z",
+            publishedAtMillis = 1793275200000L,
+            excerpt = "A related research article.",
+            sourceUrl = "https://example.org/another-feed.xml",
+            sourceTitle = "Health Research",
+        )
+        runBlocking {
+            database.feedSourceDao().insert(
+                FeedSource(
+                    feedUrl = relatedArticle.sourceUrl,
+                    title = relatedArticle.sourceTitle,
+                    feedTitle = relatedArticle.sourceTitle,
+                    level = 1,
+                    verifiedAtMillis = 1L,
+                ),
+            )
+            database.feedArticleDao().insertAll(
+                listOf(CachedFeedArticle.from(relatedArticle, 0)),
+            )
+        }
+
+        composeRule.setContent {
+            MaterialTheme {
+                ScholarlyFeedScreen(database, fetcher)
+            }
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithContentDescription(
+                "Open article: A research finding",
+                useUnmergedTree = true,
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithContentDescription(
+            "Open article: A research finding",
+            useUnmergedTree = true,
+        ).performClick()
+        composeRule.onNodeWithText("Similar articles").assertExists()
+        composeRule.onNodeWithTag("relatedArticle_article-2")
+            .performScrollTo()
+            .performClick()
+        composeRule.onNodeWithTag("articleTitle")
+            .assertTextContains("Research finding about health outcomes")
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag("articleReadingContainer")
+            .assert(
+                androidx.compose.ui.test.SemanticsMatcher.expectValue(
+                    SemanticsProperties.PaneTitle,
+                    "Article: Research finding about health outcomes",
+                ),
+            )
+        composeRule.onNodeWithText("A related research article.").assertExists()
+    }
+
+    @Test
+    fun arrowKeysScrollArticleWhenScreenReaderTouchExplorationIsOff() {
+        runBlocking {
+            val saved = database.feedArticleDao().observeArticles().first().single()
+            database.feedArticleDao().replaceForSource(
+                saved.sourceUrl,
+                listOf(saved.copy(excerpt = "A readable research sentence. ".repeat(200))),
+            )
+        }
+        composeRule.setContent {
+            MaterialTheme {
+                ScholarlyFeedScreen(database, fetcher)
+            }
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithContentDescription(
+                "Open article: A research finding",
+                useUnmergedTree = true,
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithContentDescription(
+            "Open article: A research finding",
+            useUnmergedTree = true,
+        ).performClick()
+
+        composeRule.onNodeWithTag("articleReadingContainer")
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+            .performKeyInput {
+                repeat(6) {
+                    keyDown(Key.DirectionDown)
+                    keyUp(Key.DirectionDown)
+                }
+            }
+
+        composeRule.onNodeWithTag("articleTitle").assertIsNotDisplayed()
+    }
+
+    @Test
+    fun mouseWheelScrollsArticleContent() {
+        runBlocking {
+            val saved = database.feedArticleDao().observeArticles().first().single()
+            database.feedArticleDao().replaceForSource(
+                saved.sourceUrl,
+                listOf(saved.copy(excerpt = "A readable research sentence. ".repeat(200))),
+            )
+        }
+        composeRule.setContent {
+            MaterialTheme {
+                ScholarlyFeedScreen(database, fetcher)
+            }
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithContentDescription(
+                "Open article: A research finding",
+                useUnmergedTree = true,
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithContentDescription(
+            "Open article: A research finding",
+            useUnmergedTree = true,
+        ).performClick()
+
+        composeRule.onNodeWithTag("articleReadingContainer")
+            .performMouseInput { scroll(80f) }
+
+        composeRule.onNodeWithTag("articleTitle").assertIsNotDisplayed()
+    }
+
+    @Test
+    fun feedPreviewUsesUpToFiveLines() {
+        runBlocking {
+            val saved = database.feedArticleDao().observeArticles().first().single()
+            database.feedArticleDao().replaceForSource(
+                saved.sourceUrl,
+                listOf(saved.copy(excerpt = "A readable research preview. ".repeat(100))),
+            )
+        }
+        val textLayoutResults = mutableListOf<TextLayoutResult>()
+        composeRule.setContent {
+            MaterialTheme {
+                ScholarlyFeedScreen(database, fetcher)
+            }
+        }
+
+        composeRule.onNodeWithTag("feedArticleSummary", useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { getLayoutResult ->
+                getLayoutResult(textLayoutResults)
+            }
+
+        assertEquals(5, textLayoutResults.single().lineCount)
+    }
+
+    @Test
+    fun pinchGestureIncreasesPersistedReadingScale() {
+        val pageLoader = object : PublisherPageLoader {
+            override suspend fun loadContent(articleUrl: String): PublisherPageContent =
+                PublisherPageContent(
+                    summary = null,
+                    articleText = PublisherArticleText(
+                        "First readable paragraph in the article text.\n\n" +
+                            "Second readable paragraph continues the article.",
+                        isTruncated = false,
+                    ),
+                )
+        }
+        composeRule.setContent {
+            MaterialTheme {
+                ScholarlyFeedScreen(database, fetcher, pageLoader)
+            }
+        }
+        composeRule.onNodeWithContentDescription(
+            "Open article: A research finding",
+            useUnmergedTree = true,
+        ).performClick()
+        composeRule.onNodeWithTag("fullArticleMode").performClick()
+
+        composeRule.onNodeWithTag("articleReadingContainer").performTouchInput {
+            val pinchCenter = center
+            down(0, pinchCenter - Offset(40f, 0f))
+            down(1, pinchCenter + Offset(40f, 0f))
+            moveTo(0, pinchCenter - Offset(70f, 0f), delayMillis = 100)
+            moveTo(1, pinchCenter + Offset(70f, 0f), delayMillis = 100)
+            up(0)
+            up(1)
+        }
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            AppPreferences.load(context).readingScale > MIN_READING_SCALE
+        }
+        assertTrue(AppPreferences.load(context).readingScale > MIN_READING_SCALE)
+        composeRule.onNodeWithTag("publisherArticleParagraph_0").assertExists()
+        composeRule.onNodeWithTag("publisherArticleParagraph_1").assertExists()
     }
 
     private class CountingFeedFetcher : FeedFetcher {

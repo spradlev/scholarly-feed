@@ -30,6 +30,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,6 +46,10 @@ internal fun FeedArticleDetailScreen(
     onOpenOriginalArticle: (String) -> Boolean,
     onVote: suspend (Int) -> Boolean,
     publisherPageLoader: PublisherPageLoader,
+    relatedArticles: List<FeedArticle>,
+    onOpenRelatedArticle: (FeedArticle) -> Unit,
+    readingScale: Float,
+    onReadingScaleChange: (Float) -> Unit,
 ) {
     var linkError by remember(article.id, article.sourceUrl) { mutableStateOf(false) }
     var userVote by remember(article.id, article.sourceUrl) { mutableStateOf(article.userVote) }
@@ -52,6 +58,7 @@ internal fun FeedArticleDetailScreen(
     val scope = rememberCoroutineScope()
     val articleLink = article.link?.takeIf(::isSupportedArticleLink)
     val feedExcerpt = article.excerpt?.let(::cleanArticleText)?.takeIf(String::isNotEmpty)
+    val scrollState = rememberScrollState()
     var showingFullArticle by remember(article.id, article.sourceUrl) { mutableStateOf(false) }
     var publisherPageContent by remember(article.id, article.sourceUrl) {
         mutableStateOf<PublisherPageContent?>(null)
@@ -86,6 +93,9 @@ internal fun FeedArticleDetailScreen(
     LaunchedEffect(article.id, article.sourceUrl, articleLink, feedExcerpt) {
         if (feedExcerpt == null) requestPublisherPage(false)
     }
+    LaunchedEffect(article.id, article.sourceUrl) {
+        scrollState.scrollTo(0)
+    }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -95,9 +105,19 @@ internal fun FeedArticleDetailScreen(
                     .fillMaxWidth()
                     .fillMaxHeight()
                     .align(Alignment.TopCenter)
-                    .verticalScroll(rememberScrollState())
-                    .keyboardFocusTraversal()
-                    .padding(24.dp),
+                    .verticalScroll(scrollState)
+                    .pinchToZoom { factor ->
+                        onReadingScaleChange(
+                            (readingScale * factor).coerceIn(
+                                MIN_READING_SCALE,
+                                MAX_READING_SCALE,
+                            ),
+                        )
+                    }
+                    .keyboardFocusTraversal(scrollState)
+                    .padding(24.dp)
+                    .semantics { paneTitle = "Article: ${article.title}" }
+                    .testTag("articleReadingContainer"),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 TextButton(onClick = onBack) {
@@ -105,7 +125,13 @@ internal fun FeedArticleDetailScreen(
                 }
                 Text(
                     text = article.title,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = scaleReadingStyle(
+                        MaterialTheme.typography.headlineSmall,
+                        readingScale,
+                    ),
+                    modifier = Modifier
+                        .semantics { heading() }
+                        .testTag("articleTitle"),
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -148,7 +174,21 @@ internal fun FeedArticleDetailScreen(
                     when {
                         publisherPageContent?.articleText != null -> {
                             val articleText = requireNotNull(publisherPageContent?.articleText)
-                            Text(articleText.text, style = MaterialTheme.typography.bodyLarge)
+                            articleText.text
+                                .split(ARTICLE_PARAGRAPH_SEPARATOR)
+                                .filter(String::isNotBlank)
+                                .forEachIndexed { index, paragraph ->
+                                    Text(
+                                        text = paragraph,
+                                        style = scaleReadingStyle(
+                                            MaterialTheme.typography.bodyLarge,
+                                            readingScale,
+                                        ),
+                                        modifier = Modifier.testTag(
+                                            "publisherArticleParagraph_$index",
+                                        ),
+                                    )
+                                }
                             Text(
                                 if (articleText.isTruncated) {
                                     "Reader text was shortened to keep reading responsive."
@@ -193,11 +233,22 @@ internal fun FeedArticleDetailScreen(
                     Text(summaryLabel, style = MaterialTheme.typography.titleMedium)
                     when {
                         feedExcerpt != null ->
-                            Text(feedExcerpt, style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                feedExcerpt,
+                                style = scaleReadingStyle(
+                                    MaterialTheme.typography.bodyLarge,
+                                    readingScale,
+                                ),
+                                modifier = Modifier.testTag("articleSummaryText"),
+                            )
                         publisherPageContent?.summary != null ->
                             Text(
                                 requireNotNull(publisherPageContent?.summary),
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = scaleReadingStyle(
+                                    MaterialTheme.typography.bodyLarge,
+                                    readingScale,
+                                ),
+                                modifier = Modifier.testTag("articleSummaryText"),
                             )
                         isLoadingPublisherPage ->
                             Text(
@@ -316,6 +367,20 @@ internal fun FeedArticleDetailScreen(
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
+                if (relatedArticles.isNotEmpty()) {
+                    HorizontalDivider()
+                    Text(
+                        "Similar articles",
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    relatedArticles.forEach { relatedArticle ->
+                        FeedArticleListItem(
+                            article = relatedArticle,
+                            onClick = { onOpenRelatedArticle(relatedArticle) },
+                            testTag = "relatedArticle_${relatedArticle.id}",
+                        )
+                    }
+                }
             }
         }
     }
@@ -328,3 +393,5 @@ private fun isSupportedArticleLink(value: String): Boolean {
         !uri.host.isNullOrBlank() &&
         uri.userInfo == null
 }
+
+private val ARTICLE_PARAGRAPH_SEPARATOR = Regex("\\n\\s*\\n")

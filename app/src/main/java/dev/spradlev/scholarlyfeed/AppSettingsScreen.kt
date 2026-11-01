@@ -15,6 +15,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 @Composable
 internal fun AppSettingsScreen(
@@ -33,6 +35,7 @@ internal fun AppSettingsScreen(
     onGoogleDriveSync: () -> Unit,
     onBack: () -> Unit,
 ) {
+    val scrollState = rememberScrollState()
     Surface(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -41,8 +44,8 @@ internal fun AppSettingsScreen(
                     .fillMaxWidth()
                     .fillMaxHeight()
                     .align(Alignment.TopCenter)
-                    .verticalScroll(rememberScrollState())
-                    .keyboardFocusTraversal()
+                    .verticalScroll(scrollState)
+                    .keyboardFocusTraversal(scrollState)
                     .padding(24.dp)
                     .testTag("appSettingsScreen"),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -71,6 +74,38 @@ internal fun AppSettingsScreen(
                             },
                         )
                     }
+                }
+                Text("Article reading size", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Pinch article text to zoom, or adjust the size here. Text reflows to fit the screen.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    "Reading size: ${(preferences.readingScale * 100).roundToInt()}%",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.testTag("readingScaleValue"),
+                )
+                Slider(
+                    value = preferences.readingScale,
+                    onValueChange = { scale ->
+                        onPreferencesChange(preferences.copy(readingScale = scale))
+                    },
+                    valueRange = MIN_READING_SCALE..MAX_READING_SCALE,
+                    steps = 19,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("readingScaleSlider"),
+                )
+                TextButton(
+                    onClick = {
+                        onPreferencesChange(
+                            preferences.copy(readingScale = MIN_READING_SCALE),
+                        )
+                    },
+                    enabled = preferences.readingScale != MIN_READING_SCALE,
+                    modifier = Modifier.testTag("resetReadingScaleButton"),
+                ) {
+                    Text("Reset reading size")
                 }
                 Text("Color scheme", style = MaterialTheme.typography.titleMedium)
                 Column(Modifier.selectableGroup()) {

@@ -25,13 +25,18 @@ internal enum class AppColorScheme(val label: String) {
     DARK("Dark"),
 }
 
+internal const val MIN_READING_SCALE = 1f
+internal const val MAX_READING_SCALE = 2f
+
 internal data class AppPreferences(
     val textSize: AppTextSize = AppTextSize.STANDARD,
+    val readingScale: Float = MIN_READING_SCALE,
     val colorScheme: AppColorScheme = AppColorScheme.SYSTEM,
 ) {
     companion object {
         private const val PREFERENCES_FILE = "app_accessibility_preferences"
         private const val TEXT_SIZE_KEY = "text_size"
+        private const val READING_SCALE_KEY = "reading_scale"
         private const val COLOR_SCHEME_KEY = "color_scheme"
 
         fun load(context: Context): AppPreferences {
@@ -40,6 +45,8 @@ internal data class AppPreferences(
                 textSize = AppTextSize.entries.firstOrNull {
                     it.name == preferences.getString(TEXT_SIZE_KEY, null)
                 } ?: AppTextSize.STANDARD,
+                readingScale = preferences.getFloat(READING_SCALE_KEY, MIN_READING_SCALE)
+                    .coerceIn(MIN_READING_SCALE, MAX_READING_SCALE),
                 colorScheme = AppColorScheme.entries.firstOrNull {
                     it.name == preferences.getString(COLOR_SCHEME_KEY, null)
                 } ?: AppColorScheme.SYSTEM,
@@ -50,6 +57,10 @@ internal data class AppPreferences(
             context.getSharedPreferences(PREFERENCES_FILE, Context.MODE_PRIVATE)
                 .edit()
                 .putString(TEXT_SIZE_KEY, value.textSize.name)
+                .putFloat(
+                    READING_SCALE_KEY,
+                    value.readingScale.coerceIn(MIN_READING_SCALE, MAX_READING_SCALE),
+                )
                 .putString(COLOR_SCHEME_KEY, value.colorScheme.name)
                 .apply()
         }

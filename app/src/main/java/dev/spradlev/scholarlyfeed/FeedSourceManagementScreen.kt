@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -132,6 +133,9 @@ internal fun FeedSourceManagementScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val driveScrollState = rememberScrollState()
+    val sourceScrollState = rememberScrollState()
+    val discoveryScrollState = rememberScrollState()
     var title by rememberSaveable { mutableStateOf("") }
     var feedUrl by rememberSaveable { mutableStateOf("") }
     var selectedLevel by rememberSaveable { mutableIntStateOf(1) }
@@ -426,8 +430,8 @@ internal fun FeedSourceManagementScreen(
                         .fillMaxWidth()
                         .fillMaxHeight()
                         .align(Alignment.TopCenter)
-                        .verticalScroll(rememberScrollState())
-                        .keyboardFocusTraversal()
+                        .verticalScroll(driveScrollState)
+                        .keyboardFocusTraversal(driveScrollState)
                         .padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
@@ -503,6 +507,7 @@ internal fun FeedSourceManagementScreen(
                 showingDiscovery = false
             },
             onSearchWeb = onSearchWeb,
+            scrollState = discoveryScrollState,
         )
         return
     }
@@ -515,8 +520,8 @@ internal fun FeedSourceManagementScreen(
                     .fillMaxWidth()
                     .fillMaxHeight()
                     .align(Alignment.TopCenter)
-                    .verticalScroll(rememberScrollState())
-                    .keyboardFocusTraversal()
+                    .verticalScroll(sourceScrollState)
+                    .keyboardFocusTraversal(sourceScrollState)
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
@@ -813,6 +818,7 @@ private fun SourceDiscoveryScreen(
     onBack: () -> Unit,
     onSelect: (SourceCandidate) -> Unit,
     onSearchWeb: (String) -> Boolean,
+    scrollState: ScrollState,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var searchError by rememberSaveable { mutableStateOf(false) }
@@ -834,8 +840,8 @@ private fun SourceDiscoveryScreen(
                     .fillMaxWidth()
                     .fillMaxHeight()
                     .align(Alignment.TopCenter)
-                    .verticalScroll(rememberScrollState())
-                    .keyboardFocusTraversal()
+                    .verticalScroll(scrollState)
+                    .keyboardFocusTraversal(scrollState)
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
