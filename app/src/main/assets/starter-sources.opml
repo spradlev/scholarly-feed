@@ -1,14 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
   <head>
-    <title>Scholarly Feed Starter Sources</title>
+    <title>Scholarly Feed Starter Sources (Expanded)</title>
   </head>
   <body>
+    <!-- Level 1: Raw academic, scientific, and medical reporting -->
     <outline text="ScienceDaily" title="ScienceDaily" type="rss" xmlUrl="https://www.sciencedaily.com/rss/all.xml" scholarlyFeedLevel="1" />
-    <outline text="arXiv Computer Science" title="arXiv Computer Science" type="rss" xmlUrl="https://rss.arxiv.org/rss/cs" scholarlyFeedLevel="1" />
-    <outline text="arXiv AI and Machine Learning" title="arXiv AI and Machine Learning" type="rss" xmlUrl="https://rss.arxiv.org/rss/cs.AI" scholarlyFeedLevel="1" />
+    <outline text="Nature News" title="Nature News" type="rss" xmlUrl="https://www.nature.com/nature.rss" scholarlyFeedLevel="1" />
+    <outline text="MIT Technology Review" title="MIT Technology Review" type="rss" xmlUrl="https://www.technologyreview.com/feed/" scholarlyFeedLevel="1" />
+    <outline text="New England Journal of Medicine" title="New England Journal of Medicine" type="rss" xmlUrl="https://www.nejm.org/action/showFeed?jc=nejm&amp;type=etoc&amp;feed=rss" scholarlyFeedLevel="1" />
+    <outline text="MedPage Today" title="MedPage Today" type="rss" xmlUrl="https://www.medpagetoday.com/rss/headlines.xml" scholarlyFeedLevel="1" />
+    <outline text="Nature Medicine" title="Nature Medicine" type="rss" xmlUrl="https://www.nature.com/nm.rss" scholarlyFeedLevel="1" />
+    <outline text="PLOS Medicine" title="PLOS Medicine" type="atom" xmlUrl="https://journals.plos.org/plosmedicine/feed/atom" scholarlyFeedLevel="1" />
+    <outline text="PLOS One" title="PLOS One" type="atom" xmlUrl="https://journals.plos.org/plosone/feed/atom" scholarlyFeedLevel="1" />
+
+    <!-- Level 2: Academic analysis, technology, ecology, and commentary -->
     <outline text="The Conversation (US)" title="The Conversation (US)" type="atom" xmlUrl="https://theconversation.com/us/articles.atom" scholarlyFeedLevel="2" />
+    <outline text="Psychology Today" title="Psychology Today" type="rss" xmlUrl="https://www.psychologytoday.com/us/front/feed" scholarlyFeedLevel="2" />
+    <outline text="Hackaday" title="Hackaday" type="rss" xmlUrl="https://hackaday.com/feed/" scholarlyFeedLevel="2" />
+    <outline text="Nautilus Science &amp; Culture" title="Nautilus Science &amp; Culture" type="rss" xmlUrl="https://nautil.us/feed/" scholarlyFeedLevel="2" />
+    <outline text="Ars Technica" title="Ars Technica" type="rss" xmlUrl="https://feeds.arstechnica.com/arstechnica/index" scholarlyFeedLevel="2" />
+    <outline text="Yale Environment 360" title="Yale Environment 360" type="rss" xmlUrl="https://e360.yale.edu/feed.xml" scholarlyFeedLevel="2" />
+    <outline text="Mongabay" title="Mongabay" type="rss" xmlUrl="https://news.mongabay.com/feed/" scholarlyFeedLevel="2" />
+    <outline text="Scientific American" title="Scientific American" type="rss" xmlUrl="https://www.scientificamerican.com/platform/syndication/rss/" scholarlyFeedLevel="2" />
+    <outline text="Brain &amp; Behavior Research Foundation" title="Brain &amp; Behavior Research Foundation" type="rss" xmlUrl="https://www.bbrfoundation.org/rss.xml" scholarlyFeedLevel="2" />
+
+    <!-- Level 3: Global affairs, public health, nature, and outdoor recreation -->
     <outline text="NPR News" title="NPR News" type="rss" xmlUrl="https://feeds.npr.org/1001/rss.xml" scholarlyFeedLevel="3" />
+    <outline text="BBC World News" title="BBC World News" type="rss" xmlUrl="https://feeds.bbci.co.uk/news/world/rss.xml" scholarlyFeedLevel="3" />
+    <outline text="Reddit: World News" title="Reddit: World News" type="atom" xmlUrl="https://www.reddit.com/r/worldnews/.rss" scholarlyFeedLevel="3" />
+    <outline text="ProPublica" title="ProPublica" type="rss" xmlUrl="https://www.propublica.org/feeds/propublica/main" scholarlyFeedLevel="3" />
+    <outline text="BIKEPACKING.com" title="BIKEPACKING.com" type="rss" xmlUrl="https://bikepacking.com/feed/" scholarlyFeedLevel="3" />
+    <outline text="National Audubon Society" title="National Audubon Society" type="rss" xmlUrl="https://www.audubon.org/rss.xml" scholarlyFeedLevel="3" />
+    <outline text="High Country News" title="High Country News" type="rss" xmlUrl="https://www.hcn.org/feed" scholarlyFeedLevel="3" />
+    <outline text="Outside Online" title="Outside Online" type="rss" xmlUrl="https://www.outsideonline.com/feed/" scholarlyFeedLevel="3" />
+    <outline text="MedlinePlus: New Links" title="MedlinePlus: New Links" type="rss" xmlUrl="https://medlineplus.gov/groupfeeds/new.xml" scholarlyFeedLevel="3" />
+    <outline text="The Radavist" title="The Radavist" type="rss" xmlUrl="https://theradavist.com/feed/" scholarlyFeedLevel="3" />
+
+    <!-- Level 4: Local civic and urban news -->
     <outline text="Washington State Standard" title="Washington State Standard" type="rss" xmlUrl="https://washingtonstatestandard.com/feed/" scholarlyFeedLevel="4" />
+    <outline text="The Seattle Times" title="The Seattle Times" type="rss" xmlUrl="https://www.seattletimes.com/feed/" scholarlyFeedLevel="4" />
+    <outline text="The Urbanist" title="The Urbanist" type="rss" xmlUrl="https://www.theurbanist.org/rss/" scholarlyFeedLevel="4" />
+    <outline text="Cascade PBS" title="Cascade PBS" type="rss" xmlUrl="https://www.cascadepbs.org/rss/" scholarlyFeedLevel="4" />
   </body>
 </opml>

@@ -1,6 +1,7 @@
 package dev.spradlev.scholarlyfeed
 
 import android.database.sqlite.SQLiteException
+import android.content.Context
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -16,6 +17,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.input.key.Key
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.core.app.ApplicationProvider
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -192,26 +194,11 @@ class FeedSourceManagementScreenTest {
     fun addsBundledStarterSourcesThroughExistingImportFlow() {
         composeRule.onNodeWithTag("addStarterSourcesButton").performScrollTo().performClick()
 
-        composeRule.onNodeWithText("Imported 6 sources.").assertExists()
-        assertEquals(
-            listOf(
-                OpmlSource("ScienceDaily", "https://www.sciencedaily.com/rss/all.xml", 1),
-                OpmlSource("arXiv Computer Science", "https://rss.arxiv.org/rss/cs", 1),
-                OpmlSource("arXiv AI and Machine Learning", "https://rss.arxiv.org/rss/cs.AI", 1),
-                OpmlSource(
-                    "The Conversation (US)",
-                    "https://theconversation.com/us/articles.atom",
-                    2,
-                ),
-                OpmlSource("NPR News", "https://feeds.npr.org/1001/rss.xml", 3),
-                OpmlSource(
-                    "Washington State Standard",
-                    "https://washingtonstatestandard.com/feed/",
-                    4,
-                ),
-            ),
-            importedOpmlSources,
+        val starterSources = readStarterOpml(
+            ApplicationProvider.getApplicationContext<Context>(),
         )
+        composeRule.onNodeWithText("Imported ${starterSources.size} sources.").assertExists()
+        assertEquals(starterSources, importedOpmlSources)
     }
 
     @Test

@@ -21,6 +21,7 @@ class StarterSourceImportTest {
     @Test
     fun importingStarterSourcesFetchesOffCallingThreadAndSavesAllValidSources() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        val starterSources = readStarterOpml(context)
         val callingThread = Thread.currentThread()
         val requestThreads = mutableListOf<Thread>()
         val feedXml = """
@@ -51,13 +52,16 @@ class StarterSourceImportTest {
             val repository = FeedRepository(database, SafeFeedFetcher(client = client))
             val result = repository.importOpml(readStarterOpml(context))
 
-            assertEquals(6, result.importedCount)
+            assertEquals(starterSources.size, result.importedCount)
             assertEquals(emptyList<String>(), result.errors)
-            assertEquals(6, requestThreads.size)
+            assertEquals(starterSources.size, requestThreads.size)
             requestThreads.forEach { requestThread ->
                 assertNotEquals(callingThread, requestThread)
             }
-            assertEquals(6, repository.observeSources().first().size)
+            assertEquals(starterSources.size, repository.observeSources().first().size)
+            assertEquals(listOf(8, 9, 10, 4), starterSources.groupingBy { it.level }
+                .eachCount().toSortedMap().values.toList())
+            assertEquals(starterSources.size, starterSources.map { it.feedUrl }.toSet().size)
         } finally {
             database.close()
         }

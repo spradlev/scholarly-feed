@@ -15,11 +15,11 @@
 - Each source shows the timestamp of its last successful refresh. Failed refreshes leave both the saved articles and timestamp unchanged.
 - A file-backed instrumentation test reopens the Room cache and displays a cached article detail with a fetcher that fails if called, verifying feed and detail reading does not require network access.
 - The source screen imports and exports OPML. Exports preserve app source levels with the `scholarlyFeedLevel` outline attribute; imported feeds without that attribute default to Level 1, and all imported URLs are verified before being saved.
-- Direct fetches include redirect, timeout, size, content-type, and destination-address checks. Four starter feeds were verified through the Android production fetcher on 2026-10-28; the URL-only OPML and per-feed ledger are in `docs/starter-sources.opml` and `docs/feed-sources.md`.
+- Direct fetches include redirect, timeout, size, content-type, and destination-address checks. The expanded 31-feed, four-tier starter list was verified through the Android production fetcher on a Galaxy S21 running Android 14 on 2026-11-01; the URL-only OPML and per-feed ledger are in `docs/starter-sources.opml` and `docs/feed-sources.md`.
 - Instrumentation tests cover Focus Mode state, verified-source UI flow, Room source persistence, RSS/Atom parsing and deduplication, and URL/address policy; Android lint passes.
 - The app has been run on the Medium Phone API 37 emulator.
 - TalkBack exposes the Focus Mode label/state on focus, but dynamic state-change announcements were not observed.
-- Source management can add the bundled four-feed starter OPML directly; imports use the same per-feed verification and duplicate handling as document imports.
+- Source management can add the bundled 31-feed starter OPML directly; imports use the same per-feed verification and duplicate handling as document imports.
 - Optional manual Google Drive source-list sync is implemented and merged. It stores only OPML in Drive's private app-data folder, leaves cached articles local, and requires OAuth setup for live account testing.
 - Shift+Tab reverse keyboard focus traversal is implemented across the feed, source management, source discovery, and article detail screens; TalkBack review remains outstanding.
 - The user wants step-by-step guidance and to learn while building.
