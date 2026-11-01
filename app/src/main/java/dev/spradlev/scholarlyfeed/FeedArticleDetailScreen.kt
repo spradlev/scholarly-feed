@@ -13,10 +13,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,7 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
@@ -151,21 +151,21 @@ internal fun FeedArticleDetailScreen(
                 }
                 HorizontalDivider()
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
+                PrimaryTabRow(selectedTabIndex = if (showingFullArticle) 1 else 0) {
+                    Tab(
                         selected = !showingFullArticle,
                         onClick = { showingFullArticle = false },
-                        label = { Text("Summary") },
+                        text = { Text("Summary") },
                         modifier = Modifier.testTag("articleSummaryMode"),
                     )
-                    FilterChip(
+                    Tab(
                         selected = showingFullArticle,
                         onClick = {
                             showingFullArticle = true
                             requestPublisherPage(false)
                         },
                         enabled = articleLink != null,
-                        label = { Text("Full article") },
+                        text = { Text("Full article") },
                         modifier = Modifier.testTag("fullArticleMode"),
                     )
                 }
@@ -325,11 +325,10 @@ internal fun FeedArticleDetailScreen(
                         modifier = Modifier
                             .testTag("upvoteArticleButton")
                             .semantics {
-                                contentDescription = "Upvote article"
                                 stateDescription = if (userVote == 1) "Selected" else "Not selected"
                             },
                     ) {
-                        Text(if (userVote == 1) "↑ Upvoted" else "↑ Upvote")
+                        Text(if (userVote == 1) "Upvoted" else "Upvote")
                     }
                     TextButton(
                         onClick = {
@@ -354,11 +353,10 @@ internal fun FeedArticleDetailScreen(
                         modifier = Modifier
                             .testTag("downvoteArticleButton")
                             .semantics {
-                                contentDescription = "Downvote article"
                                 stateDescription = if (userVote == -1) "Selected" else "Not selected"
                             },
                     ) {
-                        Text(if (userVote == -1) "↓ Downvoted" else "↓ Downvote")
+                        Text(if (userVote == -1) "Downvoted" else "Downvote")
                     }
                 }
                 if (voteError) {

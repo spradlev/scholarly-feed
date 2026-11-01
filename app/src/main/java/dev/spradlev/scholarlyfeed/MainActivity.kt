@@ -24,7 +24,13 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -37,11 +43,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.contentDescription
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
@@ -119,6 +125,9 @@ private fun ScholarlyFeedContent(
     var showingDriveSettings by rememberSaveable { mutableStateOf(false) }
     var sourcesReturnToSettings by rememberSaveable { mutableStateOf(false) }
     var selectedArticle by remember { mutableStateOf<FeedArticle?>(null) }
+    val feedListState = rememberLazyListState()
+    var isFeedSearchVisible by rememberSaveable { mutableStateOf(false) }
+    var feedSearchQuery by rememberSaveable { mutableStateOf("") }
     val repository = remember(database, fetcher) { FeedRepository(database, fetcher) }
     val sources by repository.observeSources().collectAsState(initial = emptyList())
     val articles by repository.observeArticles().collectAsState(initial = emptyList())
@@ -128,12 +137,24 @@ private fun ScholarlyFeedContent(
     } else {
         articles
     }
+    val searchQuery = feedSearchQuery.trim()
+    val filteredArticles = if (searchQuery.isEmpty()) {
+        visibleArticles
+    } else {
+        visibleArticles.filter { article ->
+            article.title.contains(searchQuery, ignoreCase = true) ||
+                article.sourceTitle.contains(searchQuery, ignoreCase = true) ||
+                article.excerpt?.let(::cleanArticleText)
+                    ?.contains(searchQuery, ignoreCase = true) == true
+        }
+    }
     val scope = rememberCoroutineScope()
     var isRefreshing by remember { mutableStateOf(false) }
     var refreshMessage by remember { mutableStateOf<String?>(null) }
 
     BackHandler(
-        enabled = showingSources || showingSettings || showingDriveSettings || selectedArticle != null,
+        enabled = showingSources || showingSettings || showingDriveSettings ||
+            selectedArticle != null || isFeedSearchVisible,
     ) {
         if (showingSources) {
             showingSources = false
@@ -145,8 +166,11 @@ private fun ScholarlyFeedContent(
         } else if (showingDriveSettings) {
             showingDriveSettings = false
             showingSettings = true
-        } else {
+        } else if (selectedArticle != null) {
             selectedArticle = null
+        } else if (isFeedSearchVisible) {
+            isFeedSearchVisible = false
+            feedSearchQuery = ""
         }
     }
 
@@ -248,7 +272,6 @@ private fun ScholarlyFeedContent(
                 }
                 else -> Surface(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                val feedListState = rememberLazyListState()
                 LazyColumn(
                     modifier = Modifier
                         .widthIn(max = READABLE_CONTENT_MAX_WIDTH)
@@ -293,25 +316,64 @@ private fun ScholarlyFeedContent(
                     }
                     if (sources.isNotEmpty()) {
                         item {
-                            TextButton(
-                                onClick = {
-                                    scope.launch {
-                                        isRefreshing = true
-                                        refreshMessage = null
-                                        try {
-                                            val result = repository.refreshSources(sources)
-                                            refreshMessage = result.errors
-                                                .takeIf(List<String>::isNotEmpty)
-                                                ?.joinToString("\n")
-                                        } finally {
-                                            isRefreshing = false
-                                        }
-                                    }
-                                },
-                                enabled = !isRefreshing,
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text(if (isRefreshing) "Refreshing feeds…" else "Refresh feeds")
+                                TextButton(
+                                    onClick = {
+                                        scope.launch {
+                                            isRefreshing = true
+                                            refreshMessage = null
+                                            try {
+                                                val result = repository.refreshSources(sources)
+                                                refreshMessage = result.errors
+                                                    .takeIf(List<String>::isNotEmpty)
+                                                    ?.joinToString("\n")
+                                            } finally {
+                                                isRefreshing = false
+                                            }
+                                        }
+                                    },
+                                    enabled = !isRefreshing,
+                                ) {
+                                    Text(if (isRefreshing) "Refreshing feeds…" else "Refresh feeds")
+                                }
+                                IconButton(
+                                    onClick = {
+                                        isFeedSearchVisible = !isFeedSearchVisible
+                                        if (!isFeedSearchVisible) feedSearchQuery = ""
+                                    },
+                                    modifier = Modifier.testTag("feedSearchButton"),
+                                ) {
+                                    Icon(
+                                        imageVector = if (isFeedSearchVisible) {
+                                            Icons.Filled.Close
+                                        } else {
+                                            Icons.Filled.Search
+                                        },
+                                        contentDescription = if (isFeedSearchVisible) {
+                                            "Close feed search"
+                                        } else {
+                                            "Search feed"
+                                        },
+                                    )
+                                }
                             }
+                        }
+                    }
+                    if (isFeedSearchVisible) {
+                        item {
+                            OutlinedTextField(
+                                value = feedSearchQuery,
+                                onValueChange = { feedSearchQuery = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("feedSearchField"),
+                                label = { Text("Search loaded articles") },
+                                singleLine = true,
+                            )
                         }
                     }
                     refreshMessage?.let { message ->
@@ -332,8 +394,11 @@ private fun ScholarlyFeedContent(
                     ) {
                         item { Text("No Level 1 articles yet. Turn off Focus Mode to see all sources.") }
                     }
+                    if (visibleArticles.isNotEmpty() && filteredArticles.isEmpty()) {
+                        item { Text("No articles match \"$searchQuery\".") }
+                    }
                     items(
-                        items = visibleArticles,
+                        items = filteredArticles,
                         key = { article -> "${article.sourceUrl}|${article.id}" },
                     ) { article ->
                         FeedArticleListItem(article = article) {

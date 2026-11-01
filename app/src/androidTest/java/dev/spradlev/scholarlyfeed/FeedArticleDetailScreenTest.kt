@@ -12,13 +12,17 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performMouseInput
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.text.TextLayoutResult
@@ -110,13 +114,27 @@ class FeedArticleDetailScreenTest {
         composeRule.onNodeWithText("Your feedback is saved on this device. It won't change your feed yet.")
             .assertExists()
         composeRule.onNodeWithTag("upvoteArticleButton").performClick()
-        composeRule.onNodeWithText("↑ Upvoted").assertExists()
+        composeRule.onNodeWithText("Upvoted").assertExists()
+        composeRule.onNodeWithTag("upvoteArticleButton")
+            .assert(
+                androidx.compose.ui.test.SemanticsMatcher.expectValue(
+                    SemanticsProperties.StateDescription,
+                    "Selected",
+                ),
+            )
         assertEquals(
             1,
             runBlocking { database.feedArticleDao().observeArticles().first().single().userVote },
         )
         composeRule.onNodeWithTag("downvoteArticleButton").performClick()
-        composeRule.onNodeWithText("↓ Downvoted").assertExists()
+        composeRule.onNodeWithText("Downvoted").assertExists()
+        composeRule.onNodeWithTag("downvoteArticleButton")
+            .assert(
+                androidx.compose.ui.test.SemanticsMatcher.expectValue(
+                    SemanticsProperties.StateDescription,
+                    "Selected",
+                ),
+            )
         assertEquals(
             -1,
             runBlocking { database.feedArticleDao().observeArticles().first().single().userVote },
@@ -128,6 +146,41 @@ class FeedArticleDetailScreenTest {
         composeRule.onNodeWithText("Back to feed").performClick()
         composeRule.onNodeWithText("Latest articles").assertExists()
         assertEquals(0, fetcher.fetchCount)
+    }
+
+    @Test
+    fun feedSearchFiltersLoadedArticlesByTitleSourceAndExcerpt() {
+        composeRule.setContent {
+            MaterialTheme {
+                ScholarlyFeedScreen(database, fetcher)
+            }
+        }
+        val article = composeRule.onNodeWithContentDescription(
+            "Open article: A research finding",
+            useUnmergedTree = true,
+        )
+        article.assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription("Search feed").performClick()
+        val searchField = composeRule.onNodeWithTag("feedSearchField")
+        searchField.performTextInput("Research Digest")
+        article.assertIsDisplayed()
+
+        searchField.performTextClearance()
+        searchField.performTextInput("summary from the feed")
+        article.assertIsDisplayed()
+
+        searchField.performTextClearance()
+        searchField.performTextInput("no matching articles")
+        composeRule.onAllNodesWithContentDescription(
+            "Open article: A research finding",
+            useUnmergedTree = true,
+        ).assertCountEquals(0)
+        composeRule.onNodeWithText("No articles match \"no matching articles\".")
+            .assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription("Close feed search").performClick()
+        article.assertIsDisplayed()
     }
 
     @Test
@@ -198,9 +251,49 @@ class FeedArticleDetailScreenTest {
         ).performClick()
 
         composeRule.onNodeWithText("A short summary from the feed.").assertExists()
+        composeRule.onNodeWithTag("articleSummaryMode")
+            .assert(
+                androidx.compose.ui.test.SemanticsMatcher.expectValue(
+                    SemanticsProperties.Selected,
+                    true,
+                ),
+            )
+            .assert(
+                androidx.compose.ui.test.SemanticsMatcher.expectValue(
+                    SemanticsProperties.Role,
+                    Role.Tab,
+                ),
+            )
+        composeRule.onNodeWithTag("fullArticleMode")
+            .assert(
+                androidx.compose.ui.test.SemanticsMatcher.expectValue(
+                    SemanticsProperties.Selected,
+                    false,
+                ),
+            )
+            .assert(
+                androidx.compose.ui.test.SemanticsMatcher.expectValue(
+                    SemanticsProperties.Role,
+                    Role.Tab,
+                ),
+            )
         assertEquals(0, loadCount)
 
         composeRule.onNodeWithTag("fullArticleMode").performClick()
+        composeRule.onNodeWithTag("fullArticleMode")
+            .assert(
+                androidx.compose.ui.test.SemanticsMatcher.expectValue(
+                    SemanticsProperties.Selected,
+                    true,
+                ),
+            )
+        composeRule.onNodeWithTag("articleSummaryMode")
+            .assert(
+                androidx.compose.ui.test.SemanticsMatcher.expectValue(
+                    SemanticsProperties.Selected,
+                    false,
+                ),
+            )
         composeRule.onNodeWithText("The complete readable publisher article.").assertExists()
         composeRule.waitUntil(timeoutMillis = 5_000) { loadCount == 1 }
         assertEquals(1, loadCount)
@@ -263,6 +356,45 @@ class FeedArticleDetailScreenTest {
                 ),
             )
         composeRule.onNodeWithText("A related research article.").assertExists()
+    }
+
+    @Test
+    fun returningFromArticleRestoresThePreviousFeedPosition() {
+        val additionalArticles = (1..30).map { index ->
+            FeedArticle(
+                id = "article-$index",
+                title = "Research article $index",
+                link = "https://example.org/article-$index",
+                publishedAt = null,
+                publishedAtMillis = 0L,
+                excerpt = "A research summary for article $index.",
+                sourceUrl = "https://example.org/feed.xml",
+                sourceTitle = "Research Digest",
+            )
+        }
+        runBlocking {
+            database.feedArticleDao().insertAll(
+                additionalArticles.map { CachedFeedArticle.from(it, 0) },
+            )
+        }
+
+        composeRule.setContent {
+            MaterialTheme {
+                ScholarlyFeedScreen(database, fetcher)
+            }
+        }
+        val targetArticle = composeRule.onNodeWithContentDescription(
+            "Open article: Research article 30",
+            useUnmergedTree = true,
+        )
+        targetArticle.performScrollTo().assertIsDisplayed().performClick()
+        composeRule.onNodeWithTag("articleTitle")
+            .assertTextContains("Research article 30")
+            .assertIsDisplayed()
+
+        composeRule.onNodeWithText("Back to feed").performClick()
+
+        targetArticle.assertIsDisplayed()
     }
 
     @Test
