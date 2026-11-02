@@ -1,19 +1,57 @@
 # Scholarly Feed
 
-Scholarly Feed is a distraction-free reader for scholarly and scientific articles, with a focus on intentional reading and offline access.
+Scholarly Feed is a distraction-light Android app for intentional reading, source curation, and calm discovery. It is built for people who want to consume quality information without the noise, engagement loops, and endless scrolling of a typical social feed.
 
-## Project status
+## Overview
 
-The repository contains a native Android app built with Kotlin and Jetpack Compose. Users can search a built-in directory of publisher candidates by name or topic, hand off a query to the device's web search app, enter a feed URL, verify and save RSS/Atom sources, assign one of four levels, and fetch articles on demand. Catalog entries are candidates, not verified feeds; web results are not imported into the app. Verified source metadata and fetched article entries (including feed-provided excerpts) persist locally in Room, and a failed refresh preserves the last successful entries. Cached entries open in a detail view, and repeated entries within a feed are de-duplicated by GUID or normalized URL without merging distinct articles. Source lists can be imported from or exported to OPML, and the bundled 31-feed starter list can be added from source management; all imported feeds pass HTTPS and feed verification. Focus Mode filters the visible feed to Level 1 research and scientific reporting. Local-only storage is available now; optional cloud sync with providers such as Google Drive, Box, Dropbox, or OneDrive is a future consideration, not implemented. Full article text is not downloaded. TalkBack behavior still needs a manual review.
+Scholarly Feed helps users stay close to useful, trustworthy, and thoughtfully curated sources. The app emphasizes:
+
+- quiet discovery over viral engagement
+- curated feeds over noisy “everything” streams
+- source quality over social popularity
+- offline reading over constant connectivity
+- learning and understanding over reaction-driven consumption
+
+This is not a social network. It is a reading experience designed for attention, depth, and control.
+
+## Current status
+
+The repository contains a native Android app built with Kotlin and Jetpack Compose. The current build is in active on-device testing and refinement, with a focus on:
+
+- validating the core feed collection
+- improving offline reading behavior
+- reviewing source quality and trust signals
+- validating accessibility and reading flow
+- refining the learning-oriented feed experience
+
+## Key features
+
+- curated source management with source levels and focus filters
+- OPML import/export for source portfolios
+- RSS and Atom parsing for flexible source discovery
+- article detail screens with excerpts, summaries, and related items
+- local search across loaded feed content
+- persistent offline caching for sources and entries
+- accessibility-minded UI and reading controls
+
+## Why it matters
+
+Many content feeds are optimized for attention rather than understanding. Scholarly Feed takes a different approach:
+
+- fewer distractions
+- more deliberate consumption
+- stronger source curation
+- calmer reading patterns
+- a better fit for research, learning, and thoughtful exploration
 
 ## Build and run
 
 Requirements:
 
-- Android Studio with Android SDK Platform 37 installed.
-- JDK 17 or newer.
-- `ANDROID_HOME` set to the Android SDK installation directory. The commands below use the default Linux path; adjust it if your SDK is elsewhere.
-- Internet access for the first Gradle build to download Gradle and dependencies.
+- Android Studio with Android SDK Platform 37 installed
+- JDK 17 or newer
+- `ANDROID_HOME` set to the Android SDK installation directory
+- internet access for the first Gradle build to download dependencies
 
 On the current Linux setup, Android Studio's bundled JDK is at `/opt/android-studio/jbr`. If Android Studio is installed elsewhere, replace this path with its JBR directory or another JDK 17+.
 
@@ -25,7 +63,7 @@ JAVA_HOME="/opt/android-studio/jbr" ANDROID_HOME="$HOME/Android/Sdk" ./gradlew :
 
 The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
-To run the Android instrumentation tests on a connected device or running emulator:
+To run Android instrumentation tests on a connected device or running emulator:
 
 ```bash
 JAVA_HOME="/opt/android-studio/jbr" ANDROID_HOME="$HOME/Android/Sdk" ./gradlew :app:connectedDebugAndroidTest
@@ -48,3 +86,29 @@ Alternatively, open this repository in Android Studio, allow Gradle sync to fini
 - [Accessibility requirements](docs/accessibility.md)
 - [Feed source policy](docs/feed-sources.md)
 - [Next-session setup notes](docs/next-session.md)
+
+## Product direction
+
+The long-term direction is a calm, learning-oriented feed with thoughtful sources, minimal friction, and a stronger emphasis on reading depth than conventional social feeds.
+
+Near-term focus areas include:
+
+- source-quality curation and trust signaling
+- offline-first reading and cache resilience
+- mobile-friendly source review workflows
+- feed health and freshness monitoring
+- deeper reading UX and lower-noise discovery
+
+## Contributing
+
+Contributions are welcome, especially in the following areas:
+
+- feed and source quality review
+- accessibility and reading UX
+- offline behavior and cache validation
+- device testing and usability feedback
+- documentation and product refinement
+
+## License
+
+This project does not yet declare a public license. If you plan to distribute or collaborate beyond private development, review and add the appropriate license before public release.
