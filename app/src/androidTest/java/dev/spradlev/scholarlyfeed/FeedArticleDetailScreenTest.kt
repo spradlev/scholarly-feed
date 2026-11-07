@@ -8,6 +8,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
@@ -360,34 +362,19 @@ class FeedArticleDetailScreenTest {
 
     @Test
     fun returningFromArticleRestoresThePreviousFeedPosition() {
-        val additionalArticles = (1..30).map { index ->
-            FeedArticle(
-                id = "article-$index",
-                title = "Research article $index",
-                link = "https://example.org/article-$index",
-                publishedAt = null,
-                publishedAtMillis = 0L,
-                excerpt = "A research summary for article $index.",
-                sourceUrl = "https://example.org/feed.xml",
-                sourceTitle = "Research Digest",
-            )
-        }
-        runBlocking {
-            database.feedArticleDao().insertAll(
-                additionalArticles.map { CachedFeedArticle.from(it, 0) },
-            )
-        }
-
-        composeRule.setContent {
-            MaterialTheme {
-                ScholarlyFeedScreen(database, fetcher)
-            }
+        addArticlesBeyondInitialViewport()
+        showFeedAtBottom()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithContentDescription(
+                "Open article: Research article 30",
+                useUnmergedTree = true,
+            ).fetchSemanticsNodes().isNotEmpty()
         }
         val targetArticle = composeRule.onNodeWithContentDescription(
             "Open article: Research article 30",
             useUnmergedTree = true,
         )
-        targetArticle.performScrollTo().assertIsDisplayed().performClick()
+        targetArticle.assertIsDisplayed().performClick()
         composeRule.onNodeWithTag("articleTitle")
             .assertTextContains("Research article 30")
             .assertIsDisplayed()
@@ -395,6 +382,20 @@ class FeedArticleDetailScreenTest {
         composeRule.onNodeWithText("Back to feed").performClick()
 
         targetArticle.assertIsDisplayed()
+    }
+
+    @Test
+    fun homeButtonReturnsFeedToTheTop() {
+        addArticlesBeyondInitialViewport()
+        showFeedAtBottom()
+        composeRule.onAllNodesWithText("Scholarly Feed").assertCountEquals(0)
+
+        composeRule.onNodeWithTag("bottomHomeButton").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Scholarly Feed").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Scholarly Feed").assertIsDisplayed()
     }
 
     @Test
@@ -529,6 +530,43 @@ class FeedArticleDetailScreenTest {
         assertTrue(AppPreferences.load(context).readingScale > MIN_READING_SCALE)
         composeRule.onNodeWithTag("publisherArticleParagraph_0").assertExists()
         composeRule.onNodeWithTag("publisherArticleParagraph_1").assertExists()
+    }
+
+    private fun addArticlesBeyondInitialViewport() {
+        val additionalArticles = (1..30).map { index ->
+            FeedArticle(
+                id = "article-$index",
+                title = "Research article $index",
+                link = "https://example.org/article-$index",
+                publishedAt = null,
+                publishedAtMillis = 1_800_000_000_000L - index,
+                excerpt = "A research summary for article $index.",
+                sourceUrl = "https://example.org/feed.xml",
+                sourceTitle = "Research Digest",
+            )
+        }
+        runBlocking {
+            database.feedArticleDao().insertAll(
+                additionalArticles.mapIndexed { index, article ->
+                    CachedFeedArticle.from(article, index)
+                },
+            )
+        }
+        composeRule.setContent {
+            MaterialTheme {
+                ScholarlyFeedScreen(database, fetcher)
+            }
+        }
+    }
+
+    private fun showFeedAtBottom() {
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag("feedArticleList").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("feedArticleList")
+            .performSemanticsAction(SemanticsActions.ScrollToIndex) { scrollToIndex ->
+                scrollToIndex(32)
+            }
     }
 
     private class CountingFeedFetcher : FeedFetcher {

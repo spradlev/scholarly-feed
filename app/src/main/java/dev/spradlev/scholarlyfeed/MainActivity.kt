@@ -35,6 +35,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -126,6 +127,7 @@ private fun ScholarlyFeedContent(
     var sourcesReturnToSettings by rememberSaveable { mutableStateOf(false) }
     var selectedArticle by remember { mutableStateOf<FeedArticle?>(null) }
     val feedListState = rememberLazyListState()
+    var scrollFeedToTopOnHome by remember { mutableStateOf(false) }
     var isFeedSearchVisible by rememberSaveable { mutableStateOf(false) }
     var feedSearchQuery by rememberSaveable { mutableStateOf("") }
     val repository = remember(database, fetcher) { FeedRepository(database, fetcher) }
@@ -270,8 +272,15 @@ private fun ScholarlyFeedContent(
                         },
                     )
                 }
-                else -> Surface(modifier = Modifier.fillMaxSize()) {
-                    Box(modifier = Modifier.fillMaxSize()) {
+                else -> {
+                    LaunchedEffect(scrollFeedToTopOnHome) {
+                        if (scrollFeedToTopOnHome) {
+                            feedListState.animateScrollToItem(0)
+                            scrollFeedToTopOnHome = false
+                        }
+                    }
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        Box(modifier = Modifier.fillMaxSize()) {
                 LazyColumn(
                     modifier = Modifier
                         .widthIn(max = READABLE_CONTENT_MAX_WIDTH)
@@ -404,8 +413,9 @@ private fun ScholarlyFeedContent(
                         FeedArticleListItem(article = article) {
                             selectedArticle = article
                         }
+                            }
+                        }
                     }
-                }
                 }
             }
         }
@@ -427,6 +437,7 @@ private fun ScholarlyFeedContent(
                     sourcesReturnToSettings = false
                 },
                 onHomeClick = {
+                    scrollFeedToTopOnHome = true
                     showingSources = false
                     showingDriveSettings = false
                     showingSettings = false
