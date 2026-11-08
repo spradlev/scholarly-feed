@@ -115,7 +115,10 @@ class FeedArticleDetailScreenTest {
         composeRule.onNodeWithText("Was this useful?").assertExists()
         composeRule.onNodeWithText("Your feedback is saved on this device. It won't change your feed yet.")
             .assertExists()
-        composeRule.onNodeWithTag("upvoteArticleButton").performClick()
+        composeRule.onNodeWithTag("upvoteArticleButton").performScrollTo().performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Upvoted").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("Upvoted").assertExists()
         composeRule.onNodeWithTag("upvoteArticleButton")
             .assert(
@@ -128,7 +131,10 @@ class FeedArticleDetailScreenTest {
             1,
             runBlocking { database.feedArticleDao().observeArticles().first().single().userVote },
         )
-        composeRule.onNodeWithTag("downvoteArticleButton").performClick()
+        composeRule.onNodeWithTag("downvoteArticleButton").performScrollTo().performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Downvoted").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("Downvoted").assertExists()
         composeRule.onNodeWithTag("downvoteArticleButton")
             .assert(

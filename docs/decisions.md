@@ -7,6 +7,8 @@ This file distinguishes user-confirmed decisions from proposals and open questio
 - **Product:** Scholarly Feed, a distraction-free chronological reader for scholarly/scientific and civic news.
 - **Development order:** Native Android first using Kotlin; cross-platform options can be considered later.
 - **Initial app:** One native Android application module using Kotlin and Jetpack Compose.
+- **Visual system:** Keep the app native with Jetpack Compose Material 3 components and platform conventions. Within that system, favor restrained angular or squared geometry where it improves the visual identity; do not adopt the Angular web framework or replace native controls with web equivalents.
+- **Accessibility target:** Treat WCAG 2.2 Level AA as a design and evaluation benchmark, interpreted for native Android alongside WCAG2ICT and Android accessibility guidance. Do not claim formal conformance without an appropriate evaluation.
 - **Offline strategy:** Cached articles and saved sources should work offline. AI features may require internet.
 - **Sync provider:** Google Drive is the first optional sync provider. Sync is manual and opt-in; local-only use remains supported.
 - **Sync scope and storage:** Sync only the source list as OPML in Drive's private `appDataFolder`, using the `drive.appdata` scope. Cached articles and excerpts remain local.

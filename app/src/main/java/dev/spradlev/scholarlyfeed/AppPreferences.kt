@@ -8,6 +8,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.isSpecified
 import android.os.Build
@@ -75,13 +76,30 @@ internal fun appColorScheme(preference: AppColorScheme) = run {
         AppColorScheme.DARK -> true
     }
     val context = LocalContext.current
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    val baseColorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     } else if (dark) {
         darkColorScheme()
     } else {
         lightColorScheme()
     }
+    val brandPrimary = if (dark) Color(0xFFA5D5CA) else Color(0xFF285F58)
+    val onBrandPrimary = if (dark) Color(0xFF073732) else Color.White
+    val brandContainer = if (dark) Color(0xFF194C45) else Color(0xFFD4E8E3)
+    val onBrandContainer = if (dark) Color(0xFFC1E8DE) else Color(0xFF123C38)
+
+    baseColorScheme.copy(
+        primary = brandPrimary,
+        onPrimary = onBrandPrimary,
+        primaryContainer = brandContainer,
+        onPrimaryContainer = onBrandContainer,
+        secondary = if (dark) Color(0xFFB5CCC5) else Color(0xFF526965),
+        onSecondary = if (dark) Color(0xFF203631) else Color.White,
+        secondaryContainer = if (dark) Color(0xFF374C46) else Color(0xFFD9E7E1),
+        onSecondaryContainer = if (dark) Color(0xFFD1E6DE) else Color(0xFF263B36),
+        tertiary = if (dark) Color(0xFFD1C2A8) else Color(0xFF665A43),
+        onTertiary = if (dark) Color(0xFF382E1A) else Color.White,
+    )
 }
 
 internal fun scaleTextUnit(value: TextUnit, scale: Float): TextUnit =

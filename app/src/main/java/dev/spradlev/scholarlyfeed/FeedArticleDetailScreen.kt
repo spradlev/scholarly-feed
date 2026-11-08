@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
@@ -36,6 +38,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlinx.coroutines.launch
 import java.io.IOException
 
@@ -120,9 +123,7 @@ internal fun FeedArticleDetailScreen(
                     .testTag("articleReadingContainer"),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                TextButton(onClick = onBack) {
-                    Text("Back to feed")
-                }
+                AppToolbarButton("Back to feed", onBack)
                 Text(
                     text = article.title,
                     style = scaleReadingStyle(
@@ -141,88 +142,108 @@ internal fun FeedArticleDetailScreen(
                     Text(
                         text = article.sourceTitle,
                         style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     formatArticleDate(article.publishedAtMillis)?.let { date ->
-                        Text(date, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            date,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
-                HorizontalDivider()
-
-                PrimaryTabRow(selectedTabIndex = if (showingFullArticle) 1 else 0) {
-                    Tab(
-                        selected = !showingFullArticle,
-                        onClick = { showingFullArticle = false },
-                        text = { Text("Summary") },
-                        modifier = Modifier.testTag("articleSummaryMode"),
-                    )
-                    Tab(
-                        selected = showingFullArticle,
-                        onClick = {
-                            showingFullArticle = true
-                            requestPublisherPage(false)
-                        },
-                        enabled = articleLink != null,
-                        text = { Text("Full article") },
-                        modifier = Modifier.testTag("fullArticleMode"),
-                    )
+                AppArticleSurface(modifier = Modifier.fillMaxWidth()) {
+                    PrimaryTabRow(
+                        selectedTabIndex = if (showingFullArticle) 1 else 0,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    ) {
+                        Tab(
+                            selected = !showingFullArticle,
+                            onClick = { showingFullArticle = false },
+                            text = { Text("Summary") },
+                            modifier = Modifier.testTag("articleSummaryMode"),
+                        )
+                        Tab(
+                            selected = showingFullArticle,
+                            onClick = {
+                                showingFullArticle = true
+                                requestPublisherPage(false)
+                            },
+                            enabled = articleLink != null,
+                            text = { Text("Full article") },
+                            modifier = Modifier.testTag("fullArticleMode"),
+                        )
+                    }
                 }
                 if (showingFullArticle) {
-                    Text("Full article text", style = MaterialTheme.typography.titleMedium)
-                    when {
-                        publisherPageContent?.articleText != null -> {
-                            val articleText = requireNotNull(publisherPageContent?.articleText)
-                            articleText.text
-                                .split(ARTICLE_PARAGRAPH_SEPARATOR)
-                                .filter(String::isNotBlank)
-                                .forEachIndexed { index, paragraph ->
+                    AppArticleSurface(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                "Full article text",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            when {
+                                publisherPageContent?.articleText != null -> {
+                                    val articleText =
+                                        requireNotNull(publisherPageContent?.articleText)
+                                    articleText.text
+                                        .split(ARTICLE_PARAGRAPH_SEPARATOR)
+                                        .filter(String::isNotBlank)
+                                        .forEachIndexed { index, paragraph ->
+                                            Text(
+                                                text = paragraph,
+                                                style = scaleReadingStyle(
+                                                    MaterialTheme.typography.bodyLarge,
+                                                    readingScale,
+                                                ),
+                                                modifier = Modifier.testTag(
+                                                    "publisherArticleParagraph_$index",
+                                                ),
+                                            )
+                                        }
                                     Text(
-                                        text = paragraph,
-                                        style = scaleReadingStyle(
-                                            MaterialTheme.typography.bodyLarge,
-                                            readingScale,
-                                        ),
-                                        modifier = Modifier.testTag(
-                                            "publisherArticleParagraph_$index",
-                                        ),
+                                        if (articleText.isTruncated) {
+                                            "Reader text was shortened to keep reading responsive."
+                                        } else {
+                                            "Text extracted from the publisher page. Some sites may omit " +
+                                                "parts of an article or restrict access."
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
                                     )
                                 }
-                            Text(
-                                if (articleText.isTruncated) {
-                                    "Reader text was shortened to keep reading responsive."
-                                } else {
-                                    "Text extracted from the publisher page. Some sites may omit " +
-                                        "parts of an article or restrict access."
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                        isLoadingPublisherPage ->
-                            Text(
-                                "Loading text from the publisher page…",
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                        publisherPageLoadFailed -> {
-                            Text(
-                                "Couldn't load the publisher's article text. The page may be " +
-                                    "unavailable or restrict access.",
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                            TextButton(
-                                onClick = {
-                                    requestPublisherPage(true)
-                                },
-                            ) {
-                                Text("Try loading again")
+                                isLoadingPublisherPage ->
+                                    Text(
+                                        "Loading text from the publisher page…",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                    )
+                                publisherPageLoadFailed -> {
+                                    Text(
+                                        "Couldn't load the publisher's article text. The page may be " +
+                                            "unavailable or restrict access.",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                    )
+                                    TextButton(
+                                        onClick = {
+                                            requestPublisherPage(true)
+                                        },
+                                    ) {
+                                        Text("Try loading again")
+                                    }
+                                }
+                                else ->
+                                    Text(
+                                        "No readable article text was found on the publisher's page.",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                    )
                             }
                         }
-                        else ->
-                            Text(
-                                "No readable article text was found on the publisher's page.",
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
                     }
                 } else {
                     val summaryLabel = when {
@@ -230,41 +251,52 @@ internal fun FeedArticleDetailScreen(
                         publisherPageContent?.summary != null -> "Publisher summary"
                         else -> "Article summary"
                     }
-                    Text(summaryLabel, style = MaterialTheme.typography.titleMedium)
-                    when {
-                        feedExcerpt != null ->
+                    AppArticleSurface(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
                             Text(
-                                feedExcerpt,
-                                style = scaleReadingStyle(
-                                    MaterialTheme.typography.bodyLarge,
-                                    readingScale,
-                                ),
-                                modifier = Modifier.testTag("articleSummaryText"),
+                                summaryLabel,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary,
                             )
-                        publisherPageContent?.summary != null ->
-                            Text(
-                                requireNotNull(publisherPageContent?.summary),
-                                style = scaleReadingStyle(
-                                    MaterialTheme.typography.bodyLarge,
-                                    readingScale,
-                                ),
-                                modifier = Modifier.testTag("articleSummaryText"),
-                            )
-                        isLoadingPublisherPage ->
-                            Text(
-                                "Checking the publisher page for a summary…",
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                        publisherPageLoadFailed ->
-                            Text(
-                                "Couldn't load a publisher summary. You can still open the article.",
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                        else ->
-                            Text(
-                                "No summary was available from the feed or publisher page.",
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
+                            when {
+                                feedExcerpt != null ->
+                                    Text(
+                                        feedExcerpt,
+                                        style = scaleReadingStyle(
+                                            MaterialTheme.typography.bodyLarge,
+                                            readingScale,
+                                        ),
+                                        modifier = Modifier.testTag("articleSummaryText"),
+                                    )
+                                publisherPageContent?.summary != null ->
+                                    Text(
+                                        requireNotNull(publisherPageContent?.summary),
+                                        style = scaleReadingStyle(
+                                            MaterialTheme.typography.bodyLarge,
+                                            readingScale,
+                                        ),
+                                        modifier = Modifier.testTag("articleSummaryText"),
+                                    )
+                                isLoadingPublisherPage ->
+                                    Text(
+                                        "Checking the publisher page for a summary…",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                    )
+                                publisherPageLoadFailed ->
+                                    Text(
+                                        "Couldn't load a publisher summary. You can still open the article.",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                    )
+                                else ->
+                                    Text(
+                                        "No summary was available from the feed or publisher page.",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                    )
+                            }
+                        }
                     }
                 }
                 if (feedExcerpt == null && articleLink == null) {
@@ -282,6 +314,7 @@ internal fun FeedArticleDetailScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("openOriginalArticleButton"),
+                        shape = RoundedCornerShape(percent = 50),
                     ) {
                         Text("Open publisher article")
                     }
@@ -296,13 +329,17 @@ internal fun FeedArticleDetailScreen(
                 }
 
                 HorizontalDivider()
-                Text("Was this useful?", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Was this useful?",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
                 Text(
                     "Your feedback is saved on this device. It won't change your feed yet.",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(
+                    FilledTonalButton(
                         onClick = {
                             val nextVote = if (userVote == 1) 0 else 1
                             scope.launch {
@@ -322,6 +359,19 @@ internal fun FeedArticleDetailScreen(
                             }
                         },
                         enabled = !isSavingVote,
+                        shape = RoundedCornerShape(percent = 50),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = if (userVote == 1) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.secondaryContainer
+                            },
+                            contentColor = if (userVote == 1) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            },
+                        ),
                         modifier = Modifier
                             .testTag("upvoteArticleButton")
                             .semantics {
@@ -330,7 +380,7 @@ internal fun FeedArticleDetailScreen(
                     ) {
                         Text(if (userVote == 1) "Upvoted" else "Upvote")
                     }
-                    TextButton(
+                    FilledTonalButton(
                         onClick = {
                             val nextVote = if (userVote == -1) 0 else -1
                             scope.launch {
@@ -350,6 +400,19 @@ internal fun FeedArticleDetailScreen(
                             }
                         },
                         enabled = !isSavingVote,
+                        shape = RoundedCornerShape(percent = 50),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = if (userVote == -1) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.secondaryContainer
+                            },
+                            contentColor = if (userVote == -1) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            },
+                        ),
                         modifier = Modifier
                             .testTag("downvoteArticleButton")
                             .semantics {
@@ -370,6 +433,7 @@ internal fun FeedArticleDetailScreen(
                     Text(
                         "Similar articles",
                         style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                     relatedArticles.forEach { relatedArticle ->
                         FeedArticleListItem(

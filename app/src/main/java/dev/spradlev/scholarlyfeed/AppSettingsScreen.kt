@@ -14,6 +14,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -50,32 +51,47 @@ internal fun AppSettingsScreen(
                     .testTag("appSettingsScreen"),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(onClick = onBack) {
-                    Text("Back to feed")
-                }
+                AppToolbarButton("Back to feed", onBack)
                 Text("Settings", style = MaterialTheme.typography.headlineMedium)
                 Text(
                     "Accessibility & display",
                     style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
                     "Choose a comfortable in-app text size and color scheme. Android's system font-size setting still applies.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                Text("Text size", style = MaterialTheme.typography.titleMedium)
-                Column(Modifier.selectableGroup()) {
-                    AppTextSize.entries.forEach { option ->
-                        PreferenceRadioRow(
-                            label = option.label,
-                            selected = preferences.textSize == option,
-                            testTag = "fontSizeOption_${option.name}",
-                            onClick = {
-                                onPreferencesChange(preferences.copy(textSize = option))
-                            },
-                        )
+                HorizontalDivider()
+                Text(
+                    "Text size",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                AppArticleSurface(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                            .selectableGroup(),
+                    ) {
+                        AppTextSize.entries.forEach { option ->
+                            PreferenceRadioRow(
+                                label = option.label,
+                                selected = preferences.textSize == option,
+                                testTag = "fontSizeOption_${option.name}",
+                                onClick = {
+                                    onPreferencesChange(preferences.copy(textSize = option))
+                                },
+                            )
+                        }
                     }
                 }
-                Text("Article reading size", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Article reading size",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
                 Text(
                     "Pinch article text to zoom, or adjust the size here. Text reflows to fit the screen.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -107,40 +123,54 @@ internal fun AppSettingsScreen(
                 ) {
                     Text("Reset reading size")
                 }
-                Text("Color scheme", style = MaterialTheme.typography.titleMedium)
-                Column(Modifier.selectableGroup()) {
-                    AppColorScheme.entries.forEach { option ->
-                        PreferenceRadioRow(
-                            label = option.label,
-                            selected = preferences.colorScheme == option,
-                            testTag = "colorSchemeOption_${option.name}",
-                            onClick = {
-                                onPreferencesChange(preferences.copy(colorScheme = option))
-                            },
-                        )
+                Text(
+                    "Color scheme",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                AppArticleSurface(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                            .selectableGroup(),
+                    ) {
+                        AppColorScheme.entries.forEach { option ->
+                            PreferenceRadioRow(
+                                label = option.label,
+                                selected = preferences.colorScheme == option,
+                                testTag = "colorSchemeOption_${option.name}",
+                                onClick = {
+                                    onPreferencesChange(preferences.copy(colorScheme = option))
+                                },
+                            )
+                        }
                     }
                 }
                 Text(
                     text = "Aa  Preview text adjusts with your selection.",
                     style = MaterialTheme.typography.bodyLarge,
                 )
-                TextButton(
+                AppToolbarButton(
+                    text = "Manage sources",
                     onClick = onManageSources,
                     modifier = Modifier.testTag("manageSourcesButton"),
-                ) {
-                    Text("Manage sources")
-                }
-                Text("Data & sync", style = MaterialTheme.typography.titleLarge)
+                )
+                HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+                Text(
+                    "Data & sync",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
                 Text(
                     "Source lists can optionally be synced to your private Google Drive app-data area. Articles remain on this device.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                TextButton(
+                AppToolbarButton(
+                    text = "Google Drive sync",
                     onClick = onGoogleDriveSync,
                     modifier = Modifier.testTag("googleDriveSettingsButton"),
-                ) {
-                    Text("Google Drive sync")
-                }
+                )
             }
         }
     }

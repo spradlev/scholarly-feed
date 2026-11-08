@@ -2,6 +2,15 @@
 
 Accessibility is a product requirement, not a visual polish pass. Compose does not automatically guarantee an accessible result; inspect and test actual semantics and interaction.
 
+## Design and evaluation target
+
+Use WCAG 2.2 Level AA as a baseline for design decisions and evaluation, applying criteria relevant to native applications with the [WCAG2ICT guidance](https://www.w3.org/TR/wcag2ict-22/) and [Android accessibility guidance](https://developer.android.com/guide/topics/ui/accessibility). This is a target, not a claim of formal certification or conformance; report the tested scope, methods, and known gaps.
+
+- Use at least 4.5:1 contrast for normal text and 3:1 for large text. Important non-text controls and state indicators should have at least 3:1 contrast against adjacent colors.
+- Keep Android touch targets at least 48 x 48 dp, even where WCAG's target-size criterion permits smaller targets.
+- Preserve reflow at high text/display scaling, logical TalkBack semantics and focus order, keyboard access, and alternatives to gesture-only interactions.
+- Validate light and dark schemes, selected/disabled/error states, and actual TalkBack behavior; color alone must not convey meaning.
+
 ## Principles
 
 - Use native controls and platform semantics by default.
