@@ -87,11 +87,13 @@ class FeedSourceManagementScreenTest {
 
     @Test
     fun verifiedSourceCanBeAddedWithLevelAndRemoved() {
-        composeRule.onNodeWithTag("sourceTitleInput").performTextInput("Research Digest")
-        composeRule.onNodeWithTag("sourceUrlInput").performTextInput("https://example.org/feed.xml")
-        composeRule.onNodeWithTag("sourceLevelSelector").performClick()
+        composeRule.onNodeWithTag("sourceTitleInput").performScrollTo().performTextInput("Research Digest")
+        composeRule.onNodeWithTag("sourceUrlInput")
+            .performScrollTo()
+            .performTextInput("https://example.org/feed.xml")
+        composeRule.onNodeWithTag("sourceLevelSelector").performScrollTo().performClick()
         composeRule.onNodeWithText("Level 2: Academic commentary and analysis").performClick()
-        composeRule.onNodeWithText("Verify and add").performClick()
+        composeRule.onNodeWithTag("verifyAndAddSourceButton").performScrollTo().performClick()
 
         composeRule.onNodeWithText("Verified Research Feed and added it.").assertExists()
         composeRule.onNodeWithText("Feed: Research Feed").assertExists()
@@ -107,9 +109,11 @@ class FeedSourceManagementScreenTest {
 
     @Test
     fun rejectsNonHttpsSourceWithoutVerifying() {
-        composeRule.onNodeWithTag("sourceTitleInput").performTextInput("Research Digest")
-        composeRule.onNodeWithTag("sourceUrlInput").performTextInput("http://example.org/feed.xml")
-        composeRule.onNodeWithText("Verify and add").performClick()
+        composeRule.onNodeWithTag("sourceTitleInput").performScrollTo().performTextInput("Research Digest")
+        composeRule.onNodeWithTag("sourceUrlInput")
+            .performScrollTo()
+            .performTextInput("http://example.org/feed.xml")
+        composeRule.onNodeWithTag("verifyAndAddSourceButton").performScrollTo().performClick()
 
         composeRule.onNodeWithText("Enter a valid HTTPS URL with a host.").assertExists()
         composeRule.onNodeWithText("No verified sources yet.").assertExists()
@@ -119,9 +123,11 @@ class FeedSourceManagementScreenTest {
     @Test
     fun failedFeedValidationDoesNotAddSource() {
         failVerification = true
-        composeRule.onNodeWithTag("sourceTitleInput").performTextInput("Not a feed")
-        composeRule.onNodeWithTag("sourceUrlInput").performTextInput("https://example.org/not-a-feed")
-        composeRule.onNodeWithText("Verify and add").performClick()
+        composeRule.onNodeWithTag("sourceTitleInput").performScrollTo().performTextInput("Not a feed")
+        composeRule.onNodeWithTag("sourceUrlInput")
+            .performScrollTo()
+            .performTextInput("https://example.org/not-a-feed")
+        composeRule.onNodeWithTag("verifyAndAddSourceButton").performScrollTo().performClick()
 
         composeRule.onNodeWithText("The response is not a valid RSS or Atom feed.").assertExists()
         composeRule.onNodeWithText("No verified sources yet.").assertExists()
@@ -140,7 +146,7 @@ class FeedSourceManagementScreenTest {
 
         composeRule.onNodeWithText("bioRxiv").assertExists()
         assertTrue(composeRule.onAllNodesWithText("Nature").fetchSemanticsNodes().isEmpty())
-        composeRule.onNodeWithTag("selectCandidate-bioRxiv").performClick()
+        composeRule.onNodeWithTag("selectCandidate-bioRxiv").performScrollTo().performClick()
 
         composeRule.onNodeWithTag("sourceTitleInput").assertTextContains("bioRxiv")
         composeRule.onNodeWithTag("sourceUrlInput")
@@ -177,7 +183,7 @@ class FeedSourceManagementScreenTest {
 
     @Test
     fun shiftTabMovesFocusToPreviousControl() {
-        composeRule.onNodeWithTag("sourceUrlInput").performClick()
+        composeRule.onNodeWithTag("sourceUrlInput").performScrollTo().performClick()
         composeRule.onNodeWithTag("sourceUrlInput").assertIsFocused()
 
         composeRule.onNodeWithTag("sourceUrlInput").performKeyInput {

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -269,10 +270,11 @@ internal fun FeedSourceManagementScreen(
     val driveAuthorizationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult(),
     ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK && result.data != null) {
+        val resultData = result.data
+        if (resultData != null) {
             try {
                 handleAuthorizationResult(
-                    authorizationClient.getAuthorizationResultFromIntent(result.data!!),
+                    authorizationClient.getAuthorizationResultFromIntent(resultData),
                 )
             } catch (exception: ApiException) {
                 isSyncingDrive = false
@@ -280,7 +282,15 @@ internal fun FeedSourceManagementScreen(
             }
         } else {
             isSyncingDrive = false
-            driveMessage = "Google Drive authorization was canceled. Your sources remain on this device."
+            driveMessage = buildString {
+                append("Google Drive returned no authorization data (result code ${result.resultCode}). ")
+                if (result.resultCode == android.app.Activity.RESULT_CANCELED) {
+                    append("If you selected an account, check that Drive API access and the drive.appdata scope are configured for this app in Google Cloud. ")
+                } else {
+                    append("Try again and check the Google Cloud OAuth configuration if the problem continues. ")
+                }
+                append("Your sources remain on this device.")
+            }
         }
     }
 
@@ -435,9 +445,7 @@ internal fun FeedSourceManagementScreen(
                         .padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    TextButton(onClick = onBack) {
-                        Text("Back to settings")
-                    }
+                    AppToolbarButton("Back to settings", onBack)
                     Text(
                         text = "Google Drive sync",
                         style = MaterialTheme.typography.headlineMedium,
@@ -448,6 +456,7 @@ internal fun FeedSourceManagementScreen(
                     )
                     Button(
                         onClick = ::requestDriveSync,
+                        shape = RoundedCornerShape(percent = 50),
                         enabled = !isSyncingDrive,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -545,7 +554,11 @@ internal fun FeedSourceManagementScreen(
                 ) {
                     Text("Discover publishers")
                 }
-                Text("OPML source lists", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "OPML source lists",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
                 Text(
                     "Add the starter feeds or import an OPML file. Every feed is verified before it is saved. You can also export your verified sources.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -573,6 +586,7 @@ internal fun FeedSourceManagementScreen(
                             }
                         }
                     },
+                    shape = RoundedCornerShape(percent = 50),
                     enabled = !isImportingOpml && !isSyncingDrive,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -702,7 +716,9 @@ internal fun FeedSourceManagementScreen(
                             }
                         }
                     },
+                    shape = RoundedCornerShape(percent = 50),
                     enabled = !isVerifying && !isSyncingDrive && title.isNotBlank() && feedUrl.isNotBlank(),
+                    modifier = Modifier.testTag("verifyAndAddSourceButton"),
                 ) {
                     Text(if (isVerifying) "Verifying feed…" else "Verify and add")
                 }
@@ -715,6 +731,7 @@ internal fun FeedSourceManagementScreen(
                 Text(
                     text = "Verified sources",
                     style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
                 )
                 if (sources.isEmpty()) {
                     Text("No verified sources yet.")
@@ -845,9 +862,7 @@ private fun SourceDiscoveryScreen(
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                TextButton(onClick = onBack) {
-                    Text("Back to sources")
-                }
+                AppToolbarButton("Back to sources", onBack)
                 Text(
                     text = "Discover publishers",
                     style = MaterialTheme.typography.headlineMedium,
@@ -870,6 +885,7 @@ private fun SourceDiscoveryScreen(
                         searchError = !onSearchWeb(query.trim())
                     },
                     enabled = query.isNotBlank(),
+                    shape = RoundedCornerShape(percent = 50),
                     modifier = Modifier.testTag("searchWebButton"),
                 ) {
                     Text("Search the web for RSS feeds")
@@ -885,30 +901,37 @@ private fun SourceDiscoveryScreen(
                 } else {
                     matchingCandidates.forEach { candidate ->
                         val level = sourceLevels.first { it.number == candidate.level }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(
+                        AppArticleSurface(modifier = Modifier.fillMaxWidth()) {
+                            Row(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .padding(vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text(candidate.name, style = MaterialTheme.typography.titleMedium)
-                                Text(candidate.topics, style = MaterialTheme.typography.bodyMedium)
-                                        Text(candidate.feedUrl, style = MaterialTheme.typography.bodySmall)
-                                        Text(
-                                    "Candidate · ${level.label}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
-                            TextButton(
-                                onClick = { onSelect(candidate) },
-                                modifier = Modifier.testTag("selectCandidate-${candidate.name}"),
-                            ) {
-                                Text("Use")
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    Text(candidate.name, style = MaterialTheme.typography.titleMedium)
+                                    Text(candidate.topics, style = MaterialTheme.typography.bodyMedium)
+                                    Text(
+                                        candidate.feedUrl,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(
+                                        "Candidate · ${level.label}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                TextButton(
+                                    onClick = { onSelect(candidate) },
+                                    modifier = Modifier.testTag("selectCandidate-${candidate.name}"),
+                                ) {
+                                    Text("Use")
+                                }
                             }
                         }
                     }
@@ -926,40 +949,59 @@ private fun SourceListItem(
 ) {
     val sourceLevel = sourceLevels.first { it.number == source.level }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+    AppArticleSurface(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(source.title, style = MaterialTheme.typography.titleSmall)
-            Text("Feed: ${source.feedTitle}", style = MaterialTheme.typography.bodyMedium)
-            Text(source.feedUrl, style = MaterialTheme.typography.bodyMedium)
-            Text(sourceLevel.label, style = MaterialTheme.typography.bodySmall)
-            Text(
-                "Verified ${java.text.DateFormat.getDateInstance().format(java.util.Date(source.verifiedAtMillis))}",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            source.lastSuccessfulRefreshAtMillis?.let { refreshedAtMillis ->
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(source.title, style = MaterialTheme.typography.titleSmall)
+                Text("Feed: ${source.feedTitle}", style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    "Last refreshed ${
-                        java.text.DateFormat.getDateTimeInstance().format(java.util.Date(refreshedAtMillis))
-                    }",
-                    style = MaterialTheme.typography.bodySmall,
+                    source.feedUrl,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } ?: Text("Not refreshed yet.", style = MaterialTheme.typography.bodySmall)
-        }
-        TextButton(
-            onClick = onRemove,
-            enabled = enabled,
-            modifier = Modifier.semantics {
-                contentDescription = "Remove ${source.title}"
-            },
-        ) {
-            Text("Remove")
+                Text(
+                    sourceLevel.label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "Verified ${java.text.DateFormat.getDateInstance().format(java.util.Date(source.verifiedAtMillis))}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                source.lastSuccessfulRefreshAtMillis?.let { refreshedAtMillis ->
+                    Text(
+                        "Last refreshed ${
+                            java.text.DateFormat.getDateTimeInstance()
+                                .format(java.util.Date(refreshedAtMillis))
+                        }",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } ?: Text(
+                    "Not refreshed yet.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(
+                onClick = onRemove,
+                enabled = enabled,
+                modifier = Modifier.semantics {
+                    contentDescription = "Remove ${source.title}"
+                },
+            ) {
+                Text("Remove")
+            }
         }
     }
 }

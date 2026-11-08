@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
 import androidx.room.Room
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.Icons
@@ -33,7 +35,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -176,7 +177,11 @@ private fun ScholarlyFeedContent(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface),
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -313,7 +318,14 @@ private fun ScholarlyFeedContent(
                             )
                         }
                     } else if (visibleArticles.isNotEmpty()) {
-                        item { Text("Latest articles", style = MaterialTheme.typography.titleLarge) }
+                        item {
+                            Text(
+                                "Latest articles",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 12.dp),
+                            )
+                        }
                     }
                     if (focusModeEnabled) {
                         item {
@@ -330,7 +342,8 @@ private fun ScholarlyFeedContent(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                TextButton(
+                                AppToolbarButton(
+                                    text = if (isRefreshing) "Refreshing feeds…" else "Refresh feeds",
                                     onClick = {
                                         scope.launch {
                                             isRefreshing = true
@@ -345,29 +358,34 @@ private fun ScholarlyFeedContent(
                                             }
                                         }
                                     },
+                                    modifier = Modifier.testTag("refreshFeedsButton"),
                                     enabled = !isRefreshing,
+                                )
+                                Surface(
+                                    modifier = Modifier.size(48.dp),
+                                    shape = androidx.compose.foundation.shape.CircleShape,
+                                    color = MaterialTheme.colorScheme.surfaceContainerLow,
                                 ) {
-                                    Text(if (isRefreshing) "Refreshing feeds…" else "Refresh feeds")
-                                }
-                                IconButton(
-                                    onClick = {
-                                        isFeedSearchVisible = !isFeedSearchVisible
-                                        if (!isFeedSearchVisible) feedSearchQuery = ""
-                                    },
-                                    modifier = Modifier.testTag("feedSearchButton"),
-                                ) {
-                                    Icon(
-                                        imageVector = if (isFeedSearchVisible) {
-                                            Icons.Filled.Close
-                                        } else {
-                                            Icons.Filled.Search
+                                    IconButton(
+                                        onClick = {
+                                            isFeedSearchVisible = !isFeedSearchVisible
+                                            if (!isFeedSearchVisible) feedSearchQuery = ""
                                         },
-                                        contentDescription = if (isFeedSearchVisible) {
-                                            "Close feed search"
-                                        } else {
-                                            "Search feed"
-                                        },
-                                    )
+                                        modifier = Modifier.testTag("feedSearchButton"),
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isFeedSearchVisible) {
+                                                Icons.Filled.Close
+                                            } else {
+                                                Icons.Filled.Search
+                                            },
+                                            contentDescription = if (isFeedSearchVisible) {
+                                                "Close feed search"
+                                            } else {
+                                                "Search feed"
+                                            },
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -456,56 +474,64 @@ internal fun FeedArticleListItem(
     testTag: String? = null,
     onClick: () -> Unit,
 ) {
-    Column(
+    AppArticleSurface(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 4.dp)
             .heightIn(min = 48.dp)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics {
                 contentDescription = "Open article: ${article.title}"
             }
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
-            .padding(vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(vertical = 4.dp),
     ) {
-        Text(
-            text = article.title,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 2,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            modifier = Modifier.testTag("feedArticleTitle"),
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = article.sourceTitle,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
+                text = article.title,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .testTag("feedArticleSource"),
+                modifier = Modifier.testTag("feedArticleTitle"),
             )
-            formatArticleDate(article.publishedAtMillis)?.let { date ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
-                    text = date,
+                    text = article.sourceTitle,
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.testTag("feedArticleDate"),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .testTag("feedArticleSource"),
+                )
+                formatArticleDate(article.publishedAtMillis)?.let { date ->
+                    Text(
+                        text = date,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("feedArticleDate"),
+                    )
+                }
+            }
+            article.excerpt?.let(::cleanArticleText)?.takeIf(String::isNotEmpty)?.let { excerpt ->
+                Text(
+                    text = excerpt,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 5,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag("feedArticleSummary"),
                 )
             }
         }
-        article.excerpt?.let(::cleanArticleText)?.takeIf(String::isNotEmpty)?.let { excerpt ->
-            Text(
-                text = excerpt,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 5,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                modifier = Modifier.testTag("feedArticleSummary"),
-            )
-        }
-        HorizontalDivider(modifier = Modifier.padding(top = 12.dp))
     }
 }

@@ -1,11 +1,12 @@
 package dev.spradlev.scholarlyfeed
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
@@ -54,7 +55,7 @@ internal fun AppBottomBar(
         modifier = Modifier
             .navigationBarsPadding()
             .padding(bottom = 4.dp),
-        shape = CircleShape,
+        shape = AppNavigationShape,
         color = MaterialTheme.colorScheme.surfaceContainer,
         tonalElevation = 4.dp,
     ) {
@@ -67,6 +68,7 @@ internal fun AppBottomBar(
                     onClick = onSettingsClick,
                     modifier = Modifier
                         .size(48.dp)
+                        .backgroundIfSelected(settingsSelected)
                         .then(focusModifier)
                         .semantics { selected = settingsSelected }
                         .testTag("bottomSettingsButton"),
@@ -76,7 +78,7 @@ internal fun AppBottomBar(
                         contentDescription = "Settings",
                         modifier = Modifier.size(20.dp),
                         tint = if (settingsSelected) {
-                            MaterialTheme.colorScheme.primary
+                            MaterialTheme.colorScheme.onSecondaryContainer
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         },
@@ -88,6 +90,7 @@ internal fun AppBottomBar(
                     onClick = onHomeClick,
                     modifier = Modifier
                         .size(48.dp)
+                        .backgroundIfSelected(homeSelected)
                         .then(focusModifier)
                         .semantics {
                             contentDescription = "Home"
@@ -100,7 +103,7 @@ internal fun AppBottomBar(
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
                         tint = if (homeSelected) {
-                            MaterialTheme.colorScheme.primary
+                            MaterialTheme.colorScheme.onSecondaryContainer
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         },
@@ -114,6 +117,7 @@ internal fun AppBottomBar(
                     onCheckedChange = { onFocusModeClick() },
                     modifier = Modifier
                         .size(48.dp)
+                        .backgroundIfSelected(focusModeEnabled)
                         .then(focusModifier)
                         .semantics {
                             contentDescription = "Focus mode"
@@ -127,7 +131,7 @@ internal fun AppBottomBar(
                             imageVector = Icons.Filled.Star,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                     } else {
                         OutlineStar(
@@ -140,6 +144,17 @@ internal fun AppBottomBar(
         }
     }
 }
+
+@Composable
+private fun Modifier.backgroundIfSelected(selected: Boolean): Modifier =
+    if (selected) {
+        background(
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            shape = RoundedCornerShape(12.dp),
+        )
+    } else {
+        this
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

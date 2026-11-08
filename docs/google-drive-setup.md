@@ -17,7 +17,16 @@ Google Drive sync is optional and manual. It stores only the source list as OPML
 5. Install the debug build on a device or emulator where the test account is available, open **Settings → Google Drive sync**, and choose **Connect Google Drive and sync**. Grant the requested app-data access.
 6. To verify the private copy, sync from another installation using the same account. Files in `appDataFolder` are hidden from the normal Drive file browser; a successful re-read through the app is the expected check.
 
-If Google does not return the `drive.appdata` grant, confirm the Google Drive API is enabled, `drive.appdata` is listed in the project's OAuth Data Access configuration, the testing account is an allowed test user, and the Android OAuth client matches the installed package name and signing-certificate SHA-1. Canceling the consent prompt leaves local sources unchanged.
+If the authorization flow returns no data after account selection, check the displayed result code and confirm the Google Drive API is enabled, `drive.appdata` is listed in the project's OAuth Data Access configuration, the testing account is an allowed test user, and the Android OAuth client matches the installed package name and signing-certificate SHA-1. The app attempts to parse any returned authorization intent even when Android reports a non-OK result code, so Google can return a more specific authorization error. If the user cancels the consent prompt, local sources remain unchanged.
+
+### `UNREGISTERED_ON_API_CONSOLE`
+
+An error such as `8: [8] Unknown error [status=UNREGISTERED_ON_API_CONSOLE]` means Google Play services does not recognize this installed Android app as registered for the Google API authorization request. In Google Cloud Console, open **Google Auth Platform → Clients** in the same project where the Drive API is enabled. Create or verify an **Android** OAuth client with:
+
+- Package name: `dev.spradlev.scholarlyfeed`
+- SHA-1 for this local debug build: `94:E3:E0:AC:9C:73:66:8F:11:5B:57:C6:3A:2B:E6:1D:C5:C5:6A:33`
+
+The fingerprint above is specific to the debug signing key on the development machine used to produce this build. If the app is built or installed with another signing key, use that build's SHA-1 from `./gradlew :app:signingReport` instead. Confirm the Android OAuth client is in the correct Cloud project, the Drive API is enabled there, and the test account is included in the consent screen's test users when the app is in testing mode. Do not create a web client or put a client secret in the Android app.
 
 The app's Android OAuth configuration is associated with its package name and signing certificate. Do not add OAuth client secrets, access tokens, or personal account data to the repository. This document does not contain project-specific client identifiers.
 
