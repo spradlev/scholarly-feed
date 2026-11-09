@@ -29,6 +29,20 @@ internal interface FeedSourceDao {
     )
     suspend fun updateLastSuccessfulRefresh(feedUrl: String, refreshedAtMillis: Long)
 
+    @Query(
+        """
+        UPDATE feed_sources
+        SET lastSuccessfulRefreshAtMillis = :refreshedAtMillis, etag = :etag, lastModified = :lastModified
+        WHERE feedUrl = :feedUrl
+        """,
+    )
+    suspend fun updateRefreshMetadata(
+        feedUrl: String,
+        refreshedAtMillis: Long,
+        etag: String?,
+        lastModified: String?,
+    )
+
     @Query("DELETE FROM feed_sources WHERE feedUrl = :feedUrl")
     suspend fun remove(feedUrl: String)
 }
@@ -136,7 +150,7 @@ internal interface FeedArticleDao {
 
 @Database(
     entities = [FeedSource::class, CachedFeedArticle::class],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 internal abstract class FeedDatabase : RoomDatabase() {
@@ -184,6 +198,13 @@ internal abstract class FeedDatabase : RoomDatabase() {
                 db.execSQL(
                     "ALTER TABLE `feed_articles` ADD COLUMN `userVote` INTEGER NOT NULL DEFAULT 0",
                 )
+            }
+        }
+
+        val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `feed_sources` ADD COLUMN `etag` TEXT")
+                db.execSQL("ALTER TABLE `feed_sources` ADD COLUMN `lastModified` TEXT")
             }
         }
     }

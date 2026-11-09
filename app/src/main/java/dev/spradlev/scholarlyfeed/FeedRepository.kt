@@ -20,12 +20,17 @@ internal class FeedRepository(
         articleDao.observeArticles().map { articles -> articles.map(CachedFeedArticle::toFeedArticle) }
 
     suspend fun verifyAndAdd(source: FeedSource): ParsedFeed {
-        val parsedFeed = fetcher.fetch(source.feedUrl)
+        val fetchResult = fetcher.fetchForRefresh(source.feedUrl, null, null)
+        val updated = fetchResult as? FeedFetchResult.Updated
+            ?: throw FeedFetchException("The feed was not available for verification.")
+        val parsedFeed = updated.feed
         val verifiedAtMillis = nowMillis()
         val savedSource = source.copy(
             feedTitle = parsedFeed.title,
             verifiedAtMillis = verifiedAtMillis,
             lastSuccessfulRefreshAtMillis = verifiedAtMillis,
+            etag = updated.etag,
+            lastModified = updated.lastModified,
         )
         val articles = parsedFeed.articles
             .map { it.copy(sourceUrl = source.feedUrl, sourceTitle = source.title) }
@@ -94,17 +99,35 @@ internal class FeedRepository(
 
         sources.forEach { source ->
             try {
-                val fetchedArticles = fetcher.fetch(source.feedUrl).articles
-                    .map { article ->
-                        article.copy(
-                            sourceUrl = source.feedUrl,
-                            sourceTitle = source.title,
-                        )
+                when (
+                    val fetchResult = fetcher.fetchForRefresh(
+                        source.feedUrl,
+                        source.etag,
+                        source.lastModified,
+                    )
+                ) {
+                    is FeedFetchResult.Updated -> {
+                        val fetchedArticles = fetchResult.feed.articles
+                            .map { article ->
+                                article.copy(
+                                    sourceUrl = source.feedUrl,
+                                    sourceTitle = source.title,
+                                )
+                            }
+                            .mapIndexed { index, article -> CachedFeedArticle.from(article, index) }
+                        database.withTransaction {
+                            articleDao.replaceForSource(source.feedUrl, fetchedArticles)
+                            sourceDao.updateRefreshMetadata(
+                                source.feedUrl,
+                                nowMillis(),
+                                fetchResult.etag,
+                                fetchResult.lastModified,
+                            )
+                        }
                     }
-                    .mapIndexed { index, article -> CachedFeedArticle.from(article, index) }
-                database.withTransaction {
-                    articleDao.replaceForSource(source.feedUrl, fetchedArticles)
-                    sourceDao.updateLastSuccessfulRefresh(source.feedUrl, nowMillis())
+                    FeedFetchResult.NotModified -> {
+                        sourceDao.updateLastSuccessfulRefresh(source.feedUrl, nowMillis())
+                    }
                 }
             } catch (exception: FeedFetchException) {
                 errors += "${source.title}: ${exception.message ?: "Could not load this feed."}"
