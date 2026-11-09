@@ -91,6 +91,7 @@ class OfflineFeedReadingTest {
                 FeedDatabase.MIGRATION_1_2,
                 FeedDatabase.MIGRATION_2_3,
                 FeedDatabase.MIGRATION_3_4,
+                FeedDatabase.MIGRATION_4_5,
             )
             .build()
 

@@ -29,16 +29,29 @@ internal class SafeFeedFetcher(
     private val parser: RssParser = RssParser(),
     private val client: OkHttpClient = createHttpClient(),
 ) : FeedFetcher {
-    override suspend fun fetch(url: String): ParsedFeed = withContext(Dispatchers.IO) {
+    override suspend fun fetch(url: String): ParsedFeed =
+        when (val result = fetchForRefresh(url, null, null)) {
+            is FeedFetchResult.Updated -> result.feed
+            FeedFetchResult.NotModified ->
+                throw FeedFetchException("The feed was not modified without conditional request headers.")
+        }
+
+    override suspend fun fetchForRefresh(
+        url: String,
+        etag: String?,
+        lastModified: String?,
+    ): FeedFetchResult = withContext(Dispatchers.IO) {
         var currentUrl = validateFeedUrl(url)
 
         repeat(MAX_REDIRECTS + 1) { redirectCount ->
-            val request = Request.Builder()
+            val requestBuilder = Request.Builder()
                 .url(currentUrl)
                 .header("Accept", ACCEPTED_CONTENT_TYPES.joinToString(", "))
                 .header("User-Agent", USER_AGENT)
                 .get()
-                .build()
+            etag?.let { requestBuilder.header("If-None-Match", it) }
+            lastModified?.let { requestBuilder.header("If-Modified-Since", it) }
+            val request = requestBuilder.build()
 
             val response = try {
                 client.newCall(request).execute()
@@ -57,6 +70,10 @@ internal class SafeFeedFetcher(
                         ?: throw FeedFetchException("The feed redirect URL is invalid.")
                     currentUrl = validateFeedUrl(currentUrl.toString())
                     return@repeat
+                }
+
+                if (it.code == HTTP_NOT_MODIFIED) {
+                    return@withContext FeedFetchResult.NotModified
                 }
 
                 if (!it.isSuccessful) {
@@ -81,7 +98,11 @@ internal class SafeFeedFetcher(
                     throw FeedFetchException("Could not read the feed response.", exception)
                 }
 
-                return@withContext parseFeedDocument(parser, xml, currentUrl.toString())
+                return@withContext FeedFetchResult.Updated(
+                    feed = parseFeedDocument(parser, xml, currentUrl.toString()),
+                    etag = it.header("ETag"),
+                    lastModified = it.header("Last-Modified"),
+                )
             }
         }
 
@@ -115,6 +136,7 @@ internal class SafeFeedFetcher(
     companion object {
         private const val MAX_FEED_BYTES = 4 * 1024 * 1024
         private const val MAX_REDIRECTS = 5
+        private const val HTTP_NOT_MODIFIED = 304
         private const val USER_AGENT = "ScholarlyFeed/1.0"
         private val REDIRECT_CODES = setOf(301, 302, 303, 307, 308)
         private val ACCEPTED_CONTENT_TYPES = setOf(

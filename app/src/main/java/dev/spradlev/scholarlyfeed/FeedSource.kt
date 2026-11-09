@@ -11,4 +11,6 @@ internal data class FeedSource(
     val level: Int,
     val verifiedAtMillis: Long,
     val lastSuccessfulRefreshAtMillis: Long? = null,
+    val etag: String? = null,
+    val lastModified: String? = null,
 )

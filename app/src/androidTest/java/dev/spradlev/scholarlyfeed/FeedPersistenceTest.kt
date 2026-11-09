@@ -26,6 +26,7 @@ class FeedPersistenceTest {
                    FeedDatabase.MIGRATION_1_2,
                    FeedDatabase.MIGRATION_2_3,
                    FeedDatabase.MIGRATION_3_4,
+                   FeedDatabase.MIGRATION_4_5,
                )
                .build()
            try {
@@ -43,6 +44,7 @@ class FeedPersistenceTest {
                    FeedDatabase.MIGRATION_1_2,
                    FeedDatabase.MIGRATION_2_3,
                    FeedDatabase.MIGRATION_3_4,
+                   FeedDatabase.MIGRATION_4_5,
                )
                .build()
            try {
@@ -110,6 +112,7 @@ class FeedPersistenceTest {
                FeedDatabase.MIGRATION_1_2,
                FeedDatabase.MIGRATION_2_3,
                FeedDatabase.MIGRATION_3_4,
+               FeedDatabase.MIGRATION_4_5,
            )
            .build()
        runBlocking {
@@ -176,6 +179,50 @@ class FeedPersistenceTest {
    }
 
    @Test
+   fun unchangedFeedUsesPersistedValidatorsAndKeepsCachedArticles() {
+       runBlocking {
+           val context = ApplicationProvider.getApplicationContext<Context>()
+           val database = Room.inMemoryDatabaseBuilder(context, FeedDatabase::class.java).build()
+           val source = sampleSource()
+           val article = sampleArticle(source)
+           val fetcher = ConditionalFeedFetcher(
+               FeedFetchResult.Updated(
+                   feed = ParsedFeed("Research Feed", source.feedUrl, listOf(article)),
+                   etag = "\"initial\"",
+                   lastModified = "Wed, 21 Oct 2015 07:28:00 GMT",
+               ),
+           )
+           var currentTimeMillis = 1000L
+           try {
+               val repository = FeedRepository(database, fetcher) { currentTimeMillis }
+               repository.verifyAndAdd(source)
+               repository.updateArticleVote(article, 1)
+
+               val storedSource = database.feedSourceDao().observeSources().first().single()
+               assertEquals("\"initial\"", storedSource.etag)
+               assertEquals("Wed, 21 Oct 2015 07:28:00 GMT", storedSource.lastModified)
+
+               fetcher.result = FeedFetchResult.NotModified
+               currentTimeMillis = 2000L
+               val refreshResult = repository.refreshSources(listOf(storedSource))
+
+               assertTrue(refreshResult.errors.isEmpty())
+               assertEquals(
+                   "\"initial\"" to "Wed, 21 Oct 2015 07:28:00 GMT",
+                   fetcher.refreshValidators.last(),
+               )
+               assertEquals(listOf(article.copy(userVote = 1)), repository.observeArticles().first())
+               assertEquals(
+                   2000L,
+                   database.feedSourceDao().observeSources().first().single().lastSuccessfulRefreshAtMillis,
+               )
+           } finally {
+               database.close()
+           }
+       }
+   }
+
+   @Test
    fun updatingSourceMetadataAlsoUpdatesCachedArticleAttribution() {
        runBlocking {
            val context = ApplicationProvider.getApplicationContext<Context>()
@@ -229,6 +276,25 @@ class FeedPersistenceTest {
        override suspend fun fetch(url: String): ParsedFeed {
            if (failure) throw FeedFetchException("Network unavailable.")
            return feed
+       }
+   }
+
+   private class ConditionalFeedFetcher(
+       var result: FeedFetchResult,
+   ) : FeedFetcher {
+       val refreshValidators = mutableListOf<Pair<String?, String?>>()
+
+       override suspend fun fetch(url: String): ParsedFeed =
+           (result as? FeedFetchResult.Updated)?.feed
+               ?: throw FeedFetchException("No updated feed is available.")
+
+       override suspend fun fetchForRefresh(
+           url: String,
+           etag: String?,
+           lastModified: String?,
+       ): FeedFetchResult {
+           refreshValidators += etag to lastModified
+           return result
        }
    }
 }
