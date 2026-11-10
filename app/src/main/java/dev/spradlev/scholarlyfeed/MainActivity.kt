@@ -23,14 +23,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -114,6 +109,7 @@ internal fun ScholarlyFeedScreen(
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun ScholarlyFeedContent(
     database: FeedDatabase,
     fetcher: FeedFetcher,
@@ -135,26 +131,53 @@ private fun ScholarlyFeedContent(
     val repository = remember(database, fetcher) { FeedRepository(database, fetcher) }
     val sources by repository.observeSources().collectAsState(initial = emptyList())
     val articles by repository.observeArticles().collectAsState(initial = emptyList())
-    val visibleArticles = if (focusModeEnabled) {
-        val sourceLevels = sources.associate { source -> source.feedUrl to source.level }
-        articles.filter { article -> sourceLevels[article.sourceUrl] == 1 }
-    } else {
-        articles
+    val visibleArticles = remember(focusModeEnabled, sources, articles) {
+        if (focusModeEnabled) {
+            val sourceLevels = sources.associate { source -> source.feedUrl to source.level }
+            articles.filter { article -> sourceLevels[article.sourceUrl] == 1 }
+        } else {
+            articles
+        }
     }
     val searchQuery = feedSearchQuery.trim()
-    val filteredArticles = if (searchQuery.isEmpty()) {
-        visibleArticles
-    } else {
-        visibleArticles.filter { article ->
-            article.title.contains(searchQuery, ignoreCase = true) ||
-                article.sourceTitle.contains(searchQuery, ignoreCase = true) ||
-                article.excerpt?.let(::cleanArticleText)
-                    ?.contains(searchQuery, ignoreCase = true) == true
+    val filteredArticles = remember(visibleArticles, searchQuery) {
+        if (searchQuery.isEmpty()) {
+            visibleArticles
+        } else {
+            visibleArticles.filter { article ->
+                article.title.contains(searchQuery, ignoreCase = true) ||
+                    article.sourceTitle.contains(searchQuery, ignoreCase = true) ||
+                    article.excerpt?.let(::cleanArticleText)
+                        ?.contains(searchQuery, ignoreCase = true) == true
+            }
         }
     }
     val scope = rememberCoroutineScope()
     var isRefreshing by remember { mutableStateOf(false) }
     var refreshMessage by remember { mutableStateOf<String?>(null) }
+    val isHomeScreen = !showingSources && !showingSettings && selectedArticle == null
+    val infoBarTitle = when {
+        isHomeScreen -> "Latest articles"
+        selectedArticle != null -> "Article"
+        else -> "Settings"
+    }
+
+    val refreshFeeds: () -> Unit = {
+        if (sources.isNotEmpty() && !isRefreshing) {
+            scope.launch {
+                isRefreshing = true
+                refreshMessage = null
+                try {
+                    val result = repository.refreshSources(sources)
+                    refreshMessage = result.errors
+                        .takeIf(List<String>::isNotEmpty)
+                        ?.joinToString("\n")
+                } finally {
+                    isRefreshing = false
+                }
+            }
+        }
+    }
 
     BackHandler(
         enabled = showingSources || showingSettings || showingDriveSettings ||
@@ -183,6 +206,19 @@ private fun ScholarlyFeedContent(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface),
     ) {
+        key(infoBarTitle) {
+            AppInfoBar(
+                pageTitle = infoBarTitle,
+                isFloating = isHomeScreen || selectedArticle != null,
+                focusModeEnabled = isHomeScreen && focusModeEnabled,
+                onBack = if (selectedArticle != null) {
+                    { selectedArticle = null }
+                } else {
+                    null
+                },
+                modifier = Modifier.padding(vertical = 8.dp),
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -243,7 +279,6 @@ private fun ScholarlyFeedContent(
                 ) {
                     FeedArticleDetailScreen(
                         article = selectedArticle!!,
-                        onBack = { selectedArticle = null },
                         onOpenOriginalArticle = { link ->
                             try {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
@@ -287,6 +322,11 @@ private fun ScholarlyFeedContent(
                     }
                     Surface(modifier = Modifier.fillMaxSize()) {
                         Box(modifier = Modifier.fillMaxSize()) {
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = refreshFeeds,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
                 LazyColumn(
                     modifier = Modifier
                         .widthIn(max = READABLE_CONTENT_MAX_WIDTH)
@@ -299,96 +339,12 @@ private fun ScholarlyFeedContent(
                     verticalArrangement = Arrangement.spacedBy(0.dp),
                     state = feedListState,
                 ) {
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = "Scholarly Feed",
-                                style = MaterialTheme.typography.headlineMedium,
-                            )
-                        }
-                    }
                     if (articles.isEmpty() && sources.isEmpty()) {
                         item {
                             Text(
                                 text = "Your feed is empty. Add sources to set up your reading list.",
                                 style = MaterialTheme.typography.bodyLarge,
                             )
-                        }
-                    } else if (visibleArticles.isNotEmpty()) {
-                        item {
-                            Text(
-                                "Latest articles",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 12.dp),
-                            )
-                        }
-                    }
-                    if (focusModeEnabled) {
-                        item {
-                            Text(
-                                text = "Research only",
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                    }
-                    if (sources.isNotEmpty()) {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                AppToolbarButton(
-                                    text = if (isRefreshing) "Refreshing feeds…" else "Refresh feeds",
-                                    onClick = {
-                                        scope.launch {
-                                            isRefreshing = true
-                                            refreshMessage = null
-                                            try {
-                                                val result = repository.refreshSources(sources)
-                                                refreshMessage = result.errors
-                                                    .takeIf(List<String>::isNotEmpty)
-                                                    ?.joinToString("\n")
-                                            } finally {
-                                                isRefreshing = false
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.testTag("refreshFeedsButton"),
-                                    enabled = !isRefreshing,
-                                )
-                                Surface(
-                                    modifier = Modifier.size(48.dp),
-                                    shape = androidx.compose.foundation.shape.CircleShape,
-                                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                                ) {
-                                    IconButton(
-                                        onClick = {
-                                            isFeedSearchVisible = !isFeedSearchVisible
-                                            if (!isFeedSearchVisible) feedSearchQuery = ""
-                                        },
-                                        modifier = Modifier.testTag("feedSearchButton"),
-                                    ) {
-                                        Icon(
-                                            imageVector = if (isFeedSearchVisible) {
-                                                Icons.Filled.Close
-                                            } else {
-                                                Icons.Filled.Search
-                                            },
-                                            contentDescription = if (isFeedSearchVisible) {
-                                                "Close feed search"
-                                            } else {
-                                                "Search feed"
-                                            },
-                                        )
-                                    }
-                                }
-                            }
                         }
                     }
                     if (isFeedSearchVisible) {
@@ -432,11 +388,12 @@ private fun ScholarlyFeedContent(
                         FeedArticleListItem(article = article) {
                             selectedArticle = article
                         }
-                            }
-                        }
                     }
                 }
+                }
+                }
             }
+        }
         }
         }
         Box(
@@ -449,6 +406,9 @@ private fun ScholarlyFeedContent(
                 focusModeEnabled = focusModeEnabled,
                 settingsSelected = showingSettings || (showingSources && sourcesReturnToSettings),
                 homeSelected = !showingSources && !showingSettings && selectedArticle == null,
+                isFeedSearchVisible = isFeedSearchVisible,
+                isRefreshing = isRefreshing,
+                canRefresh = sources.isNotEmpty(),
                 onSettingsClick = {
                     showingSources = false
                     showingDriveSettings = false
@@ -464,6 +424,11 @@ private fun ScholarlyFeedContent(
                     selectedArticle = null
                 },
                 onFocusModeClick = { focusModeEnabled = !focusModeEnabled },
+                onFeedSearchClick = {
+                    isFeedSearchVisible = !isFeedSearchVisible
+                    if (!isFeedSearchVisible) feedSearchQuery = ""
+                },
+                onRefreshClick = refreshFeeds,
             )
         }
     }

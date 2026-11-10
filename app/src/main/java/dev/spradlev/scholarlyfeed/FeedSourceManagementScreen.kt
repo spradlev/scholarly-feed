@@ -782,7 +782,7 @@ internal fun FeedSourceManagementScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         RadioButton(
                             selected = !useDriveConflictValues,
-                            onClick = { useDriveConflictValues = false },
+                            onClick = null,
                         )
                         TextButton(onClick = { useDriveConflictValues = false }) {
                             Text("Keep this device's details")
@@ -791,7 +791,7 @@ internal fun FeedSourceManagementScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         RadioButton(
                             selected = useDriveConflictValues,
-                            onClick = { useDriveConflictValues = true },
+                            onClick = null,
                         )
                         TextButton(onClick = { useDriveConflictValues = true }) {
                             Text("Use Drive's details")
@@ -928,7 +928,11 @@ private fun SourceDiscoveryScreen(
                                 }
                                 TextButton(
                                     onClick = { onSelect(candidate) },
-                                    modifier = Modifier.testTag("selectCandidate-${candidate.name}"),
+                                    modifier = Modifier
+                                        .semantics {
+                                            contentDescription = "Use ${candidate.name} as a source"
+                                        }
+                                        .testTag("selectCandidate-${candidate.name}"),
                                 ) {
                                     Text("Use")
                                 }

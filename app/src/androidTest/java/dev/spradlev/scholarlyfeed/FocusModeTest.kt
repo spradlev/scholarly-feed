@@ -5,12 +5,14 @@ import androidx.compose.ui.semantics.SemanticsProperties.ContentDescription
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
@@ -32,7 +34,7 @@ class FocusModeTest {
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Off"))
             .performMouseInput { moveTo(center) }
         composeRule.waitUntil(timeoutMillis = 2_000) {
-            composeRule.onAllNodesWithText("Focus mode: Off")
+            composeRule.onAllNodesWithText("Focus mode")
                 .fetchSemanticsNodes()
                 .isNotEmpty()
         }
@@ -41,6 +43,23 @@ class FocusModeTest {
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "On"))
             .performClick()
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Off"))
+    }
+
+    @Test
+    fun searchButtonExposesItsActionAndShowsTooltipOnTouchHold() {
+        val search = composeRule.onNodeWithTag("feedSearchButton")
+        search
+            .assert(SemanticsMatcher.expectValue(ContentDescription, listOf("Search feed")))
+            .performTouchInput { longClick() }
+
+        composeRule.waitUntil(timeoutMillis = 2_000) {
+            composeRule.onAllNodesWithText("Search feed")
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+
+        composeRule.onNodeWithTag("refreshFeedsButton")
+            .assert(SemanticsMatcher.expectValue(ContentDescription, listOf("Refresh feeds")))
     }
 
     @Test

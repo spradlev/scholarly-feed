@@ -2,13 +2,17 @@ package dev.spradlev.scholarlyfeed
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -17,6 +21,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
@@ -47,9 +52,14 @@ internal fun AppBottomBar(
     focusModeEnabled: Boolean,
     settingsSelected: Boolean,
     homeSelected: Boolean,
+    isFeedSearchVisible: Boolean,
+    isRefreshing: Boolean,
+    canRefresh: Boolean,
     onSettingsClick: () -> Unit,
     onHomeClick: () -> Unit,
     onFocusModeClick: () -> Unit,
+    onFeedSearchClick: () -> Unit,
+    onRefreshClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier
@@ -62,20 +72,47 @@ internal fun AppBottomBar(
         Row(
             modifier = Modifier
                 .padding(horizontal = 4.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            BottomBarTooltip("Settings") { focusModifier ->
+            if (homeSelected) {
+                val searchLabel = if (isFeedSearchVisible) "Close feed search" else "Search feed"
+                AppTooltip(searchLabel) { focusModifier ->
+                    IconButton(
+                        onClick = onFeedSearchClick,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .then(focusModifier)
+                            .semantics { contentDescription = searchLabel }
+                            .testTag("feedSearchButton"),
+                    ) {
+                        Icon(
+                            imageVector = if (isFeedSearchVisible) {
+                                Icons.Filled.Close
+                            } else {
+                                Icons.Filled.Search
+                            },
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
+            AppTooltip("Settings") { focusModifier ->
                 IconButton(
                     onClick = onSettingsClick,
                     modifier = Modifier
                         .size(48.dp)
                         .backgroundIfSelected(settingsSelected)
                         .then(focusModifier)
-                        .semantics { selected = settingsSelected }
+                        .semantics {
+                            contentDescription = "Settings"
+                            selected = settingsSelected
+                        }
                         .testTag("bottomSettingsButton"),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Settings,
-                        contentDescription = "Settings",
+                        contentDescription = null,
                         modifier = Modifier.size(20.dp),
                         tint = if (settingsSelected) {
                             MaterialTheme.colorScheme.onSecondaryContainer
@@ -85,7 +122,7 @@ internal fun AppBottomBar(
                     )
                 }
             }
-            BottomBarTooltip("Home") { focusModifier ->
+            AppTooltip("Home") { focusModifier ->
                 IconButton(
                     onClick = onHomeClick,
                     modifier = Modifier
@@ -110,8 +147,7 @@ internal fun AppBottomBar(
                     )
                 }
             }
-            BottomBarTooltip("Focus mode: ${if (focusModeEnabled) "On" else "Off"}") {
-                    focusModifier ->
+            AppTooltip("Focus mode") { focusModifier ->
                 IconToggleButton(
                     checked = focusModeEnabled,
                     onCheckedChange = { onFocusModeClick() },
@@ -141,6 +177,33 @@ internal fun AppBottomBar(
                     }
                 }
             }
+            if (homeSelected) {
+                val refreshLabel = if (isRefreshing) "Refreshing feeds" else "Refresh feeds"
+                AppTooltip(refreshLabel) { focusModifier ->
+                    IconButton(
+                        onClick = onRefreshClick,
+                        enabled = canRefresh && !isRefreshing,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .then(focusModifier)
+                            .semantics { contentDescription = refreshLabel }
+                            .testTag("refreshFeedsButton"),
+                    ) {
+                        if (isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Filled.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -158,7 +221,7 @@ private fun Modifier.backgroundIfSelected(selected: Boolean): Modifier =
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun BottomBarTooltip(
+internal fun AppTooltip(
     text: String,
     content: @Composable (Modifier) -> Unit,
 ) {

@@ -45,7 +45,6 @@ import java.io.IOException
 @Composable
 internal fun FeedArticleDetailScreen(
     article: FeedArticle,
-    onBack: () -> Unit,
     onOpenOriginalArticle: (String) -> Boolean,
     onVote: suspend (Int) -> Boolean,
     publisherPageLoader: PublisherPageLoader,
@@ -123,7 +122,6 @@ internal fun FeedArticleDetailScreen(
                     .testTag("articleReadingContainer"),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                AppToolbarButton("Back to feed", onBack)
                 Text(
                     text = article.title,
                     style = scaleReadingStyle(

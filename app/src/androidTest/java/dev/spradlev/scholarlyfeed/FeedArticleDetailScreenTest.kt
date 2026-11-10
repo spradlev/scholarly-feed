@@ -151,8 +151,10 @@ class FeedArticleDetailScreenTest {
         composeRule.onNodeWithText("Open publisher article").assertExists()
         assertEquals(0, fetcher.fetchCount)
 
-        composeRule.onNodeWithText("Back to feed").performClick()
-        composeRule.onNodeWithText("Latest articles").assertExists()
+        composeRule.onNodeWithTag("infoBarBackButton").performClick()
+        composeRule.onNodeWithTag("feedArticleList").assertIsDisplayed()
+        composeRule.onNodeWithTag("appInfoBarPageTitle")
+            .assertTextContains("Latest articles")
         assertEquals(0, fetcher.fetchCount)
     }
 
@@ -385,7 +387,7 @@ class FeedArticleDetailScreenTest {
             .assertTextContains("Research article 30")
             .assertIsDisplayed()
 
-        composeRule.onNodeWithText("Back to feed").performClick()
+        composeRule.onNodeWithTag("infoBarBackButton").performClick()
 
         targetArticle.assertIsDisplayed()
     }
@@ -394,7 +396,7 @@ class FeedArticleDetailScreenTest {
     fun homeButtonReturnsFeedToTheTop() {
         addArticlesBeyondInitialViewport()
         showFeedAtBottom()
-        composeRule.onAllNodesWithText("Scholarly Feed").assertCountEquals(0)
+        composeRule.onNodeWithText("Scholarly Feed").assertIsDisplayed()
 
         composeRule.onNodeWithTag("bottomHomeButton").performClick()
 
@@ -402,6 +404,8 @@ class FeedArticleDetailScreenTest {
             composeRule.onAllNodesWithText("Scholarly Feed").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Scholarly Feed").assertIsDisplayed()
+        composeRule.onNodeWithTag("appInfoBarPageTitle")
+            .assertTextContains("Latest articles")
     }
 
     @Test
@@ -467,7 +471,9 @@ class FeedArticleDetailScreenTest {
         ).performClick()
 
         composeRule.onNodeWithTag("articleReadingContainer")
-            .performMouseInput { scroll(80f) }
+            .performMouseInput {
+                repeat(5) { scroll(500f) }
+            }
 
         composeRule.onNodeWithTag("articleTitle").assertIsNotDisplayed()
     }
@@ -571,7 +577,7 @@ class FeedArticleDetailScreenTest {
         }
         composeRule.onNodeWithTag("feedArticleList")
             .performSemanticsAction(SemanticsActions.ScrollToIndex) { scrollToIndex ->
-                scrollToIndex(32)
+                scrollToIndex(29)
             }
     }
 

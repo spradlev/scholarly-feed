@@ -18,6 +18,7 @@ Use WCAG 2.2 Level AA as a baseline for design decisions and evaluation, applyin
 - Provide meaningful labels, roles, state, and actions.
 - Keep focus and traversal order logical.
 - Provide visible keyboard focus when hardware keyboard navigation is supported.
+- Icon-only controls expose a concise accessible name and show the same action label in a tooltip on hover, keyboard focus, and touch-and-hold. Tooltips supplement—not replace—screen-reader semantics.
 - Announce meaningful refresh, import/export, validation, and error status changes without excessively interrupting speech.
 - Do not communicate status using color alone.
 - Avoid custom gestures as the only way to perform an action.

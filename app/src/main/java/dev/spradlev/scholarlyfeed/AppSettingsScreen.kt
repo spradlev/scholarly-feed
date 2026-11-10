@@ -24,6 +24,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -52,7 +54,6 @@ internal fun AppSettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 AppToolbarButton("Back to feed", onBack)
-                Text("Settings", style = MaterialTheme.typography.headlineMedium)
                 Text(
                     "Accessibility & display",
                     style = MaterialTheme.typography.titleLarge,
@@ -110,6 +111,9 @@ internal fun AppSettingsScreen(
                     steps = 19,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .semantics {
+                            contentDescription = "Article reading size"
+                        }
                         .testTag("readingScaleSlider"),
                 )
                 TextButton(
