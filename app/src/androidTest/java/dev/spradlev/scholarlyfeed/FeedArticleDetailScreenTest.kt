@@ -28,6 +28,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -156,6 +157,32 @@ class FeedArticleDetailScreenTest {
         composeRule.onNodeWithTag("appInfoBarPageTitle")
             .assertTextContains("Latest articles")
         assertEquals(0, fetcher.fetchCount)
+    }
+
+    @Test
+    fun selectedArticleSurvivesSavedStateRestoration() {
+        val restorationTester = StateRestorationTester(composeRule)
+        restorationTester.setContent {
+            MaterialTheme {
+                ScholarlyFeedScreen(database, fetcher)
+            }
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithContentDescription(
+                "Open article: A research finding",
+                useUnmergedTree = true,
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithContentDescription(
+            "Open article: A research finding",
+            useUnmergedTree = true,
+        ).performClick()
+        composeRule.onNodeWithTag("articleTitle").assertIsDisplayed()
+
+        restorationTester.emulateSavedInstanceStateRestore()
+
+        composeRule.onNodeWithTag("articleTitle").assertTextContains("A research finding")
+        composeRule.onNodeWithTag("infoBarBackButton").assertIsDisplayed()
     }
 
     @Test

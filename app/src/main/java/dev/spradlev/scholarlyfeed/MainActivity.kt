@@ -123,7 +123,8 @@ private fun ScholarlyFeedContent(
     var showingSettings by rememberSaveable { mutableStateOf(false) }
     var showingDriveSettings by rememberSaveable { mutableStateOf(false) }
     var sourcesReturnToSettings by rememberSaveable { mutableStateOf(false) }
-    var selectedArticle by remember { mutableStateOf<FeedArticle?>(null) }
+    var selectedArticleSourceUrl by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedArticleId by rememberSaveable { mutableStateOf<String?>(null) }
     val feedListState = rememberLazyListState()
     var scrollFeedToTopOnHome by remember { mutableStateOf(false) }
     var isFeedSearchVisible by rememberSaveable { mutableStateOf(false) }
@@ -131,6 +132,18 @@ private fun ScholarlyFeedContent(
     val repository = remember(database, fetcher) { FeedRepository(database, fetcher) }
     val sources by repository.observeSources().collectAsState(initial = emptyList())
     val articles by repository.observeArticles().collectAsState(initial = emptyList())
+    val selectedArticle = remember(articles, selectedArticleSourceUrl, selectedArticleId) {
+        articles.firstOrNull { article ->
+            article.sourceUrl == selectedArticleSourceUrl && article.id == selectedArticleId
+        }
+    }
+    val isArticleSelected = selectedArticleSourceUrl != null && selectedArticleId != null
+    LaunchedEffect(articles, isArticleSelected, selectedArticle) {
+        if (isArticleSelected && articles.isNotEmpty() && selectedArticle == null) {
+            selectedArticleSourceUrl = null
+            selectedArticleId = null
+        }
+    }
     val visibleArticles = remember(focusModeEnabled, sources, articles) {
         if (focusModeEnabled) {
             val sourceLevels = sources.associate { source -> source.feedUrl to source.level }
@@ -155,10 +168,10 @@ private fun ScholarlyFeedContent(
     val scope = rememberCoroutineScope()
     var isRefreshing by remember { mutableStateOf(false) }
     var refreshMessage by remember { mutableStateOf<String?>(null) }
-    val isHomeScreen = !showingSources && !showingSettings && selectedArticle == null
+    val isHomeScreen = !showingSources && !showingSettings && !isArticleSelected
     val infoBarTitle = when {
         isHomeScreen -> "Latest articles"
-        selectedArticle != null -> "Article"
+        isArticleSelected -> "Article"
         else -> "Settings"
     }
 
@@ -181,7 +194,7 @@ private fun ScholarlyFeedContent(
 
     BackHandler(
         enabled = showingSources || showingSettings || showingDriveSettings ||
-            selectedArticle != null || isFeedSearchVisible,
+            isArticleSelected || isFeedSearchVisible,
     ) {
         if (showingSources) {
             showingSources = false
@@ -193,8 +206,9 @@ private fun ScholarlyFeedContent(
         } else if (showingDriveSettings) {
             showingDriveSettings = false
             showingSettings = true
-        } else if (selectedArticle != null) {
-            selectedArticle = null
+        } else if (isArticleSelected) {
+            selectedArticleSourceUrl = null
+            selectedArticleId = null
         } else if (isFeedSearchVisible) {
             isFeedSearchVisible = false
             feedSearchQuery = ""
@@ -209,10 +223,13 @@ private fun ScholarlyFeedContent(
         key(infoBarTitle) {
             AppInfoBar(
                 pageTitle = infoBarTitle,
-                isFloating = isHomeScreen || selectedArticle != null,
+                isFloating = isHomeScreen || isArticleSelected,
                 focusModeEnabled = isHomeScreen && focusModeEnabled,
-                onBack = if (selectedArticle != null) {
-                    { selectedArticle = null }
+                onBack = if (isArticleSelected) {
+                    {
+                        selectedArticleSourceUrl = null
+                        selectedArticleId = null
+                    }
                 } else {
                     null
                 },
@@ -273,45 +290,55 @@ private fun ScholarlyFeedContent(
                     },
                     onBack = { showingSettings = false },
                 )
-                selectedArticle != null -> key(
-                    selectedArticle!!.sourceUrl,
-                    selectedArticle!!.id,
-                ) {
-                    FeedArticleDetailScreen(
-                        article = selectedArticle!!,
-                        onOpenOriginalArticle = { link ->
-                            try {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
-                                true
-                            } catch (_: ActivityNotFoundException) {
-                                false
-                            }
-                        },
-                        onVote = { userVote ->
-                            val saved = repository.updateArticleVote(selectedArticle!!, userVote)
-                            if (saved) selectedArticle = selectedArticle?.copy(userVote = userVote)
-                            saved
-                        },
-                        publisherPageLoader = publisherPageLoader,
-                        relatedArticles = recommendSimilarArticles(
-                            selectedArticle!!,
-                            visibleArticles,
-                        ),
-                        onOpenRelatedArticle = { related ->
-                            selectedArticle = related
-                        },
-                        readingScale = appPreferences.readingScale,
-                        onReadingScaleChange = { scale ->
-                            onAppPreferencesChange(
-                                appPreferences.copy(
-                                    readingScale = scale.coerceIn(
-                                        MIN_READING_SCALE,
-                                        MAX_READING_SCALE,
-                                    ),
+                isArticleSelected -> {
+                    if (selectedArticle == null) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text("Loading article...", style = MaterialTheme.typography.bodyLarge)
+                        }
+                    } else {
+                        val article = selectedArticle
+                        key(article.sourceUrl, article.id) {
+                            FeedArticleDetailScreen(
+                                article = article,
+                                onOpenOriginalArticle = { link ->
+                                    try {
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW, Uri.parse(link)),
+                                        )
+                                        true
+                                    } catch (_: ActivityNotFoundException) {
+                                        false
+                                    }
+                                },
+                                onVote = { userVote ->
+                                    repository.updateArticleVote(article, userVote)
+                                },
+                                publisherPageLoader = publisherPageLoader,
+                                relatedArticles = recommendSimilarArticles(
+                                    article,
+                                    visibleArticles,
                                 ),
+                                onOpenRelatedArticle = { related ->
+                                    selectedArticleSourceUrl = related.sourceUrl
+                                    selectedArticleId = related.id
+                                },
+                                readingScale = appPreferences.readingScale,
+                                onReadingScaleChange = { scale ->
+                                    onAppPreferencesChange(
+                                        appPreferences.copy(
+                                            readingScale = scale.coerceIn(
+                                                MIN_READING_SCALE,
+                                                MAX_READING_SCALE,
+                                            ),
+                                        ),
+                                    )
+                                },
                             )
-                        },
-                    )
+                        }
+                    }
                 }
                 else -> {
                     LaunchedEffect(scrollFeedToTopOnHome) {
@@ -386,7 +413,8 @@ private fun ScholarlyFeedContent(
                         key = { article -> "${article.sourceUrl}|${article.id}" },
                     ) { article ->
                         FeedArticleListItem(article = article) {
-                            selectedArticle = article
+                            selectedArticleSourceUrl = article.sourceUrl
+                            selectedArticleId = article.id
                         }
                     }
                 }
@@ -405,7 +433,7 @@ private fun ScholarlyFeedContent(
             AppBottomBar(
                 focusModeEnabled = focusModeEnabled,
                 settingsSelected = showingSettings || (showingSources && sourcesReturnToSettings),
-                homeSelected = !showingSources && !showingSettings && selectedArticle == null,
+                homeSelected = !showingSources && !showingSettings && !isArticleSelected,
                 isFeedSearchVisible = isFeedSearchVisible,
                 isRefreshing = isRefreshing,
                 canRefresh = sources.isNotEmpty(),
@@ -421,7 +449,8 @@ private fun ScholarlyFeedContent(
                     showingDriveSettings = false
                     showingSettings = false
                     sourcesReturnToSettings = false
-                    selectedArticle = null
+                    selectedArticleSourceUrl = null
+                    selectedArticleId = null
                 },
                 onFocusModeClick = { focusModeEnabled = !focusModeEnabled },
                 onFeedSearchClick = {
