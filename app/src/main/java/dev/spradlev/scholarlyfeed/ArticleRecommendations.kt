@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package dev.spradlev.scholarlyfeed
 
 private val ARTICLE_WORD = Regex("[\\p{L}\\p{N}]{3,}")

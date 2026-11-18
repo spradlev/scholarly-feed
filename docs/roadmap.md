@@ -111,7 +111,7 @@ This is a product milestone, not a declaration that development is complete. Tal
 - [ ] Test with a range of screen sizes and Android versions.
 - [ ] If article images are introduced, show thumbnails and link to the publisher's original article or higher-resolution image.
 - [ ] Document installation and known limitations.
-- [ ] Decide on licensing before public release.
+- [x] Decide on licensing before public release: AGPL-3.0-or-later for application source and CC BY-SA 4.0 for starter OPML lists and project documentation/design concepts.
 
 ## Scope control
 

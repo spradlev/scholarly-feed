@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package dev.spradlev.scholarlyfeed
 
 import com.prof18.rssparser.RssParser

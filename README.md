@@ -111,4 +111,12 @@ Contributions are welcome, especially in the following areas:
 
 ## License
 
-This project does not yet declare a public license. If you plan to distribute or collaborate beyond private development, review and add the appropriate license before public release.
+### Application source code
+
+The application source code in `app/src/` is licensed under the GNU Affero General Public License, version 3 or (at your option) any later version. See [LICENSE](LICENSE) for the full terms.
+
+### Curated feed lists and documentation
+
+The starter feed lists in `app/src/main/assets/starter-sources.opml` and `docs/starter-sources.opml`, and project documentation and design concepts in `docs/`, are licensed under the Creative Commons Attribution-ShareAlike 4.0 International License. See [DATA-LICENSE](DATA-LICENSE) for the full terms.
+
+These licenses apply only to material the project has the rights to license. Third-party software, publisher content, trademarks, and other separately identified materials remain under their respective terms.

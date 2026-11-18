@@ -22,6 +22,7 @@ This file distinguishes user-confirmed decisions from proposals and open questio
 - **Feed fetching:** The Android app fetches user-entered HTTPS RSS/Atom URLs directly, with redirect, timeout, response-size, content-type, and destination-address checks. The user chose direct device fetching over a backend for this stage.
 - **Feed parser:** `com.prof18.rssparser:rssparser` parses RSS and Atom documents.
 - **Initial Discovery search:** Use Android's external web-search handoff rather than embedding a search provider. Results are not ingested; users manually enter and verify feed URLs.
+- **Licensing:** Application source in `app/src/` is licensed under AGPL-3.0-or-later. The starter OPML feed lists and project documentation/design concepts in `docs/` are licensed under CC BY-SA 4.0. Third-party material remains under its own terms.
 
 ## Recommended, not yet implemented
 
@@ -37,7 +38,6 @@ This file distinguishes user-confirmed decisions from proposals and open questio
 - Which Google Cloud OAuth project and Android signing certificate will be used to configure and live-test Drive authorization? Do not commit credentials or tokens.
 - Which LLM provider will be used behind the provider-neutral proxy?
 - Where will the proxy be hosted?
-- What license should apply before any public release?
 - What is the final minimum Android version after accessibility, device, and dependency trade-offs are assessed?
 
 Update this log when a decision is confirmed. Do not turn a proposal into a “confirmed” decision without the product owner's agreement or actual verification.
